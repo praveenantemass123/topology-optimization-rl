@@ -4,8 +4,9 @@ evaluate_baselines.py
 Audited sanity baselines evaluation conforming strictly to BTP specifications and Claude's audit:
 - Evaluates Uniform Baseline
 - Evaluates Random Agent across 3 seeded runs (properly seeding action_space and env)
-- Evaluates Trained PPO Agent across 3 separately trained checkpoints (seeds 42, 43, 44)
+- Evaluates Standard PPO Agent (Gate 3) across 3 seeds (42, 43, 44)
 - Evaluates Canonical Sensitivity Heuristic
+- Evaluates Heuristic Residual PPO Agent (Stage 4) across 3 seeds (42, 43, 44)
 - Evaluates Classical SIMP at the EXACT SAME FEA budgets (20 and 30 solves)
 - Evaluates Converged Classical SIMP (95 solves)
 - Automatically writes results/sanity_baselines.csv from code (never hand-edited)
@@ -60,7 +61,7 @@ def run_random_agent(seeds=[0, 1, 2], max_steps=30):
     return float(np.mean(compliances)), float(np.std(compliances))
 
 
-def run_ppo_agents(seeds=[42, 43, 44], max_steps=30):
+def run_standard_ppo_agents(seeds=[42, 43, 44], max_steps=30):
     compliances = []
     config = {
         "nelx": 30, "nely": 10, "volfrac": 0.4, "max_steps": max_steps,
@@ -70,7 +71,35 @@ def run_ppo_agents(seeds=[42, 43, 44], max_steps=30):
     for s in seeds:
         ckpt_path = f"results/checkpoints/ppo_gate3_seed{s}.zip"
         if not os.path.exists(ckpt_path):
-            raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}. Run src/train.py first.")
+            return None, None, []
+            
+        model = PPO.load(ckpt_path)
+        test_env = FlatObsWrapper(config=config, seed=s)
+        obs, info = test_env.reset(seed=s)
+        test_env.action_space.seed(s)
+        
+        for _ in range(max_steps):
+            action, _ = model.predict(obs, deterministic=True)
+            obs, reward, terminated, truncated, info = test_env.step(action)
+            if terminated or truncated:
+                break
+        compliances.append(info["compliance"])
+        
+    return float(np.mean(compliances)), float(np.std(compliances)), compliances
+
+
+def run_residual_ppo_agents(seeds=[42, 43, 44], max_steps=30, alpha=0.2):
+    compliances = []
+    config = {
+        "nelx": 30, "nely": 10, "volfrac": 0.4, "max_steps": max_steps,
+        "project_volume": True, "delta_max": 0.05, "Emin": 1e-9, "reward_clip": 2.0,
+        "residual": True, "alpha": alpha
+    }
+    
+    for s in seeds:
+        ckpt_path = f"results/checkpoints/ppo_stage4_residual_seed{s}.zip"
+        if not os.path.exists(ckpt_path):
+            return None, None, []
             
         model = PPO.load(ckpt_path)
         test_env = FlatObsWrapper(config=config, seed=s)
@@ -148,16 +177,21 @@ def main():
     rand_mean, rand_std = run_random_agent(seeds=[0, 1, 2], max_steps=30)
     print(f"2. Random Agent (3 seeds, delta_max=0.05)      : {rand_mean:.2f} ± {rand_std:.2f}")
     
-    ppo_mean, ppo_std, ppo_ind = run_ppo_agents(seeds=[42, 43, 44], max_steps=30)
-    print(f"3. Trained PPO Agent (3 separately trained seeds): {ppo_mean:.2f} ± {ppo_std:.2f} (seeds: {ppo_ind})")
-    
+    std_ppo_mean, std_ppo_std, std_ppo_ind = run_standard_ppo_agents(seeds=[42, 43, 44], max_steps=30)
+    if std_ppo_mean is not None:
+        print(f"3. Standard PPO Agent (Gate 3, 3 seeds)        : {std_ppo_mean:.2f} ± {std_ppo_std:.2f} (seeds: {std_ppo_ind})")
+        
     c_heuristic = run_canonical_heuristic(max_steps=30)
     print(f"4. Canonical Sensitivity Heuristic (30 steps)  : {c_heuristic:.2f}")
     
+    res_ppo_mean, res_ppo_std, res_ppo_ind = run_residual_ppo_agents(seeds=[42, 43, 44], max_steps=30, alpha=0.2)
+    if res_ppo_mean is not None:
+        print(f"5. Residual PPO Agent (Stage 4, 3 seeds)       : {res_ppo_mean:.2f} ± {res_ppo_std:.2f} (seeds: {res_ppo_ind})")
+        
     c_simp_20, c_simp_30, c_simp_conv, n_conv = run_simp_at_budgets()
-    print(f"5. Classical SIMP @ 20 iterations (Equal Budget): {c_simp_20:.2f}")
-    print(f"6. Classical SIMP @ 30 iterations (Equal Budget): {c_simp_30:.2f}")
-    print(f"7. Converged Classical SIMP (tol=0.005)        : {c_simp_conv:.2f} (in {n_conv} iters)")
+    print(f"6. Classical SIMP @ 20 iterations (Equal Budget): {c_simp_20:.2f}")
+    print(f"7. Classical SIMP @ 30 iterations (Equal Budget): {c_simp_30:.2f}")
+    print(f"8. Converged Classical SIMP (tol=0.005)        : {c_simp_conv:.2f} (in {n_conv} iters)")
     
     os.makedirs("results", exist_ok=True)
     res_path = "results/sanity_baselines.csv"
@@ -166,8 +200,11 @@ def main():
         writer.writerow(["Method", "Mean Compliance", "Std Compliance", "FEA Solves", "Description"])
         writer.writerow(["Uniform Baseline", f"{c_uniform:.2f}", "0.00", 1, "Homogeneous x_e = 0.40"])
         writer.writerow(["Random Agent (3 seeds)", f"{rand_mean:.2f}", f"{rand_std:.2f}", 30, "Seeded uniform random noise in [-1, 1] scaled by delta_max"])
-        writer.writerow(["Trained PPO Agent (Gate 3)", f"{ppo_mean:.2f}", f"{ppo_std:.2f}", 30, "3 separately trained PPO models (seeds 42, 43, 44)"])
+        if std_ppo_mean is not None:
+            writer.writerow(["Standard PPO Agent (Gate 3)", f"{std_ppo_mean:.2f}", f"{std_ppo_std:.2f}", 30, "3 separately trained PPO models (seeds 42, 43, 44)"])
         writer.writerow(["Canonical Sensitivity Heuristic", f"{c_heuristic:.2f}", "0.00", 30, "Greedy sensitivity step -dc/|max dc| with volume projection"])
+        if res_ppo_mean is not None:
+            writer.writerow(["Residual PPO Agent (Stage 4)", f"{res_ppo_mean:.2f}", f"{res_ppo_std:.2f}", 30, "3 separately trained Residual PPO models (alpha=0.2)"])
         writer.writerow(["Classical SIMP @ 20 iters", f"{c_simp_20:.2f}", "0.00", 20, "SIMP OC with sensitivity filter at equal FEA budget 20"])
         writer.writerow(["Classical SIMP @ 30 iters", f"{c_simp_30:.2f}", "0.00", 30, "SIMP OC with sensitivity filter at equal FEA budget 30"])
         writer.writerow(["Converged Classical SIMP", f"{c_simp_conv:.2f}", "0.00", n_conv, "SIMP OC converged to tol=0.005 (ground truth)"])

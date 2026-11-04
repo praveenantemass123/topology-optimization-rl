@@ -20,7 +20,7 @@ from fem.element import lk
 from fem.mesh import build_edofmat, build_sparse_indices
 from fem.solver import solve, strain_energy_density
 from fem.cases import cantilever_case
-from simp.filters import build_filter, density_filter
+from simp.filters import build_filter, density_filter, chain_rule_density
 
 
 class TopOptEnv(gym.Env):
@@ -56,6 +56,8 @@ class TopOptEnv(gym.Env):
             "Emin": 1e-9,
             "filter_type": "density",
             "channels": 4,  # density, strain_energy, load_mask, support_mask
+            "residual": False,  # If True, blends sensitivity base direction with residual action
+            "alpha": 0.5,       # Residual action scaling factor
         }
         if config:
             self.config.update(config)
@@ -109,6 +111,7 @@ class TopOptEnv(gym.Env):
         self.x: np.ndarray = np.full((self.nely, self.nelx), self.volfrac, dtype=np.float64)
         self.x_phys: np.ndarray = self.x.copy()
         self.U: np.ndarray = np.zeros(2 * (self.nelx + 1) * (self.nely + 1), dtype=np.float64)
+        self.ce: np.ndarray = np.zeros((self.nely, self.nelx), dtype=np.float64)
         self.C0: float = 1.0
         self.C_prev: float = 1.0
         self.t: int = 0
@@ -155,16 +158,24 @@ class TopOptEnv(gym.Env):
         return np.stack(channels[:self.num_channels], axis=0)
 
     def _project_volume(self, x_in: np.ndarray) -> np.ndarray:
-        """Exact bisection shift projection ensuring mean(clip(x + s, xmin, 1.0)) == volfrac."""
+        """Exact bisection shift projection ensuring mean(x_phys) == volfrac to < 1e-6."""
         xmin = 0.001
         target_v = self.volfrac
+        use_density_filter = (self.config.get("filter_type") == "density")
+        H = self.fea_cache["H"]
+        Hs = self.fea_cache["Hs"]
         
         l1 = -2.0
         l2 = 2.0
         
         for _ in range(35):
             s = 0.5 * (l1 + l2)
-            v_mean = np.mean(np.clip(x_in + s, xmin, 1.0))
+            x_cand = np.clip(x_in + s, xmin, 1.0)
+            if use_density_filter:
+                v_mean = float(np.mean(density_filter(x_cand, H, Hs)))
+            else:
+                v_mean = float(np.mean(x_cand))
+                
             if v_mean > target_v:
                 l2 = s
             else:
@@ -214,6 +225,8 @@ class TopOptEnv(gym.Env):
             Emin=self.config["Emin"]
         )
         self.U = U
+        self.ce = ce
+        self.ce = ce
         self.C0 = float(c)
         self.C_prev = float(c)
         self.t = 0
@@ -241,6 +254,21 @@ class TopOptEnv(gym.Env):
         
         # 1. Bounded action scaled by delta_max
         action_arr = np.clip(np.array(action, dtype=np.float64), -1.0, 1.0)
+        
+        # Physics Residual Policy blend (Stage 4)
+        if self.config.get("residual", False):
+            p = float(self.config["p"])
+            E0 = float(self.config["E0"])
+            Emin = float(self.config["Emin"])
+            dc = -p * (self.x_phys ** (p - 1.0)) * (E0 - Emin) * self.ce
+            dv = np.ones_like(dc)
+            dc_filt, _ = chain_rule_density(dc, dv, self.fea_cache["H"], self.fea_cache["Hs"])
+            dc_norm = -dc_filt / (np.max(np.abs(dc_filt)) + 1e-12)
+            a_base = (dc_norm - np.mean(dc_norm)) / (np.std(dc_norm) + 1e-12)
+            a_base = np.clip(a_base, -1.0, 1.0)
+            alpha = float(self.config.get("alpha", 0.5))
+            action_arr = np.clip(a_base + alpha * action_arr, -1.0, 1.0)
+            
         delta = self.delta_max * action_arr
         
         x_new = np.clip(self.x + delta, 0.001, 1.0)
@@ -270,6 +298,7 @@ class TopOptEnv(gym.Env):
             Emin=self.config["Emin"]
         )
         self.U = U
+        self.ce = ce
         
         # 5. C0-Normalized Reward with Safeguards
         actual_vol = float(np.mean(self.x_phys))

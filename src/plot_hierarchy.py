@@ -1,12 +1,13 @@
 """
 plot_hierarchy.py
 =================
-Generates the 5-panel benchmark visualization:
-1. Uniform Baseline (C = 1826.10)
-2. Random Agent (C = 2395.38)
-3. Trained PPO Agent (Gate 3, C = 906.17)
-4. Canonical Sensitivity Heuristic (C = 609.84)
-5. Classical SIMP Ground Truth (C = 399.27)
+Generates the 6-panel benchmark visualization showing the complete hierarchy:
+1. Uniform Baseline (C = 1826.1)
+2. Random Exploration (C = 2391.8)
+3. Standard PPO Agent (Gate 3, C = 905.6)
+4. Sensitivity Heuristic (C = 602.3)
+5. Residual PPO Agent (Stage 4, C = 440.9)
+6. Classical SIMP Ground Truth (C = 399.3)
 """
 
 import sys
@@ -43,18 +44,18 @@ def main():
     x_rand = env_r.x_phys
     c_rand = info_r['compliance']
 
-    # 3. Trained PPO (Seed 44)
-    model = PPO.load('results/checkpoints/ppo_gate3_seed44.zip')
-    env_p = FlatObsWrapper(config={'nelx': 30, 'nely': 10, 'volfrac': 0.4, 'max_steps': 30, 'project_volume': True}, seed=44)
-    obs, info_p = env_p.reset(seed=44)
-    env_p.action_space.seed(44)
+    # 3. Standard PPO (Seed 44)
+    model_std = PPO.load('results/checkpoints/ppo_gate3_seed44.zip')
+    env_std = FlatObsWrapper(config={'nelx': 30, 'nely': 10, 'volfrac': 0.4, 'max_steps': 30, 'project_volume': True}, seed=44)
+    obs, info_std = env_std.reset(seed=44)
+    env_std.action_space.seed(44)
     for _ in range(30):
-        a, _ = model.predict(obs, deterministic=True)
-        obs, _, term, trunc, info_p = env_p.step(a)
+        a, _ = model_std.predict(obs, deterministic=True)
+        obs, _, term, trunc, info_std = env_std.step(a)
         if term or trunc:
             break
-    x_ppo = env_p.x_phys
-    c_ppo = info_p['compliance']
+    x_std = env_std.x_phys
+    c_std = info_std['compliance']
 
     # 4. Sensitivity Heuristic
     env_h = TopOptEnv(config={'nelx': 30, 'nely': 10, 'volfrac': 0.4, 'max_steps': 30, 'project_volume': True}, seed=42)
@@ -71,20 +72,34 @@ def main():
     x_heur = env_h.x_phys
     c_heur = info_h['compliance']
 
-    # Plot 5-panel layout
-    fig, axes = plt.subplots(1, 5, figsize=(18, 3.5))
-    plot_density(x_uniform, title='1. Uniform Baseline\nC = 1826.1', ax=axes[0], case=case)
-    plot_density(x_rand, title=f'2. Random Exploration\nC = {c_rand:.1f}', ax=axes[1], case=case)
-    plot_density(x_ppo, title=f'3. Trained PPO (Gate 3)\nC = {c_ppo:.1f}', ax=axes[2], case=case)
-    plot_density(x_heur, title=f'4. Sensitivity Heuristic\nC = {c_heur:.1f}', ax=axes[3], case=case)
-    plot_density(res_simp['x_phys'], title=f'5. SIMP Ground Truth\nC = {res_simp["compliance"]:.1f}', ax=axes[4], case=case)
+    # 5. Residual PPO (Stage 4, Seed 43)
+    model_res = PPO.load('results/checkpoints/ppo_stage4_residual_seed43.zip')
+    env_res = FlatObsWrapper(config={'nelx': 30, 'nely': 10, 'volfrac': 0.4, 'max_steps': 30, 'project_volume': True, 'residual': True, 'alpha': 0.2}, seed=43)
+    obs, info_res = env_res.reset(seed=43)
+    env_res.action_space.seed(43)
+    for _ in range(30):
+        a, _ = model_res.predict(obs, deterministic=True)
+        obs, _, term, trunc, info_res = env_res.step(a)
+        if term or trunc:
+            break
+    x_res = env_res.x_phys
+    c_res = info_res['compliance']
 
-    plt.suptitle('Benchmark Hierarchy on Cantilever 30x10 (Emin = 1e-9)', fontsize=13, fontweight='bold')
+    # Plot 6-panel layout
+    fig, axes = plt.subplots(1, 6, figsize=(21, 3.5))
+    plot_density(x_uniform, title='1. Uniform\nC = 1826.1', ax=axes[0], case=case)
+    plot_density(x_rand, title=f'2. Random\nC = {c_rand:.1f}', ax=axes[1], case=case)
+    plot_density(x_std, title=f'3. Standard PPO\nC = {c_std:.1f}', ax=axes[2], case=case)
+    plot_density(x_heur, title=f'4. Heuristic\nC = {c_heur:.1f}', ax=axes[3], case=case)
+    plot_density(x_res, title=f'5. Residual PPO\nC = {c_res:.1f}', ax=axes[4], case=case)
+    plot_density(res_simp['x_phys'], title=f'6. SIMP (Ground Truth)\nC = {res_simp["compliance"]:.1f}', ax=axes[5], case=case)
+
+    plt.suptitle('Topology Optimization Benchmark Progression on Cantilever 30x10 (Emin = 1e-9)', fontsize=14, fontweight='bold')
     plt.tight_layout()
     out_img = 'rl_trained_agent_result.png'
     plt.savefig(out_img, dpi=200)
     plt.close()
-    print(f'[Done] Saved 5-panel comparison to {out_img}')
+    print(f'[Done] Saved 6-panel progression comparison to {out_img}')
 
 
 if __name__ == '__main__':

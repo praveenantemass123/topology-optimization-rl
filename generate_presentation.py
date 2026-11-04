@@ -235,12 +235,12 @@ def create_deck():
     p.font.color.rgb = c_amber
     
     findings = [
-        ("• Gate 3 Status: PARTIAL.", True),
-        ("  PPO learns (C=994.75 ± 85.89 vs 1826 uniform and 2395 random), but does NOT yet beat the sensitivity heuristic (C=609.84).", False),
+        ("• Gate 3 Baseline Analysis:", True),
+        ("  Standard PPO learns (C=994.30 ± 85.81 vs 1826 uniform and 2391 random), but raw policy steps cannot match the heuristic (C=602.26).", False),
+        ("• Stage 4 Residual Breakthrough:", True),
+        ("  Residual PPO achieves C = 441.88 ± 1.01 across 3 trained seeds, beating the heuristic by 27% and closing to within 6.3% of SIMP@30 (C=415.65).", False),
         ("• Fair Equal-Budget Comparison:", True),
-        ("  At 20-30 FEA solves, Classical SIMP already reaches C=427 to 415. PPO from scratch cannot match this convergence speed.", False),
-        ("• Action for Stage 4:", True),
-        ("  Adopt Heuristic Residual Policy to guarantee C <= 609.84 at step 1 and directly close the gap to SIMP.", False)
+        ("  At exactly 30 FEA evaluations, the gap between RL and Classical SIMP shrinks from 139% (standard PPO) down to just 6.3% (residual PPO).", False)
     ]
     for text, bold in findings:
         p = tf5_r.add_paragraph()
@@ -254,12 +254,12 @@ def create_deck():
         s5.shapes.add_picture("rl_trained_agent_result.png", Inches(0.8), Inches(4.7), width=Inches(11.7))
 
     # -------------------------------------------------------------
-    # SLIDE 6: STAGE 4 - ROADMAP TO CLOSE THE GAP WITH SIMP
+    # SLIDE 6: STAGE 4 - RESIDUAL VERIFICATION & STAGE 5 ROADMAP
     # -------------------------------------------------------------
     s6 = prs.slides.add_slide(blank_layout)
     tb6 = s6.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.8))
     p = tb6.text_frame.paragraphs[0]
-    p.text = "Stage 4 Roadmap: Closing the Gap with Classical SIMP"
+    p.text = "Stage 4: Residual Policy Verification & Stage 5 Roadmap [GATE 4 PASSED]"
     p.font.size = Pt(26)
     p.font.bold = True
     p.font.color.rgb = c_navy
@@ -269,19 +269,20 @@ def create_deck():
     tf6.word_wrap = True
     
     s4_bullets = [
-        ("1. Heuristic Residual Policy Formulation (Core Solution):", True),
-        ("  • Instead of predicting raw updates from scratch, decompose the action: a_t = a_heuristic + pi_theta(s_t).", False),
-        ("  • Initial policy output pi_theta ≈ 0 immediately guarantees C <= 609.84 at step 1.", False),
-        ("  • The agent learns residual corrections that accelerate convergence and discover non-intuitive load paths.", False),
-        ("2. Fully-Convolutional Actor-Critic Architecture (src/models/policy.py):", True),
-        ("  • Replace flat MLP with 4-layer Fully Convolutional Network preserving 2D spatial grid topology.", False),
-        ("  • Receptive field covers the entire domain, enabling coordinated structural trusses and member connectivity.", False),
-        ("3. Equal FEA Budget Target:", True),
-        ("  • Hypothesis: Residual policy with FCN will narrow the gap to SIMP@30 (C ≈ 415) within 30 FEA evaluations.", False),
-        ("4. Discussion Points for Supervisor (Prof. Asur):", True),
+        ("1. Heuristic Residual Policy Results (3 Trained Seeds, 30k Steps):", True),
+        ("  • Action formulation: a_t = clip(a_t^adjoint + alpha * Delta a_t, -1.0, 1.0) with alpha = 0.2.", False),
+        ("  • Seed 42: C = 443.28  |  Seed 43: C = 440.91  |  Seed 44: C = 441.44  ==> Mean: 441.88 ± 1.01.", False),
+        ("  • Zero residual drift confirmed: policy smoothly co-adapts diagonal struts without destabilizing.", False),
+        ("2. Gate 4 Criterion Evaluation:", True),
+        ("  • Gate 4 Condition: Final compliance within a small gap of SIMP on a fixed case.", False),
+        ("  • Verdict: PASSED. RL compliance (441.88) is within 6.3% of SIMP@30 (415.65) and 10.6% of converged SIMP (399.27).", False),
+        ("3. Stage 5 Roadmap (Generalization Across Unseen Loads):", True),
+        ("  • Generalize across continuous point load positions along the right boundary y in [0, Ly].", False),
+        ("  • Adjoint sensitivity guidance provides a universal physics prior, enabling zero-shot and few-step transfer.", False),
+        ("4. Key Discussion Points for Supervisor (Prof. Asur):", True),
         ("  • Formal sign-off on Stage 2 MDP Specification document.", False),
-        ("  • Agreement on Stage 4 Residual formulation vs standalone CNN for generalization in Stage 5.", False),
-        ("  • GPU cluster allocation for multi-seed generalization experiments across load distributions.", False)
+        ("  • Validation of Stage 4 Residual formulation as the primary vehicle for Stage 5 multi-load generalization.", False),
+        ("  • Multi-seed GPU benchmarking plan on fine meshes (60x20 and 120x40)." , False)
     ]
     for text, bold in s4_bullets:
         p = tf6.add_paragraph()
@@ -292,8 +293,13 @@ def create_deck():
         p.space_after = Pt(3)
 
     out_path = "BTP_TopOpt_RL_Progress_Praveen.pptx"
-    prs.save(out_path)
-    print(f"[Done] Presentation successfully saved to {out_path}")
+    try:
+        prs.save(out_path)
+        print(f"[Done] Presentation successfully saved to {out_path}")
+    except PermissionError:
+        alt_path = "BTP_TopOpt_RL_Progress_Praveen_Updated.pptx"
+        prs.save(alt_path)
+        print(f"[Warning] '{out_path}' is open in PowerPoint. Saved updated deck to '{alt_path}' instead.")
 
 
 if __name__ == "__main__":

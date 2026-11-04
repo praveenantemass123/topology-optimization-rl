@@ -74,3 +74,39 @@ class TestTopOptEnv:
         obs2, _ = env.reset(seed=123)
         
         assert np.allclose(obs1, obs2, atol=1e-12), "Identical seeds produced different initial observations!"
+
+    def test_residual_mode_zero_action_stiffness(self):
+        """In residual mode, zero residual action must achieve significant stiffness reduction."""
+        config = {
+            "nelx": 16, "nely": 8, "volfrac": 0.4, "max_steps": 10,
+            "project_volume": True, "residual": True, "alpha": 0.5
+        }
+        env = TopOptEnv(config=config)
+        obs, info = env.reset(seed=42)
+        initial_c = info["compliance"]
+        
+        for _ in range(10):
+            zero_action = np.zeros((env.nely, env.nelx), dtype=np.float32)
+            obs, r, term, trunc, info = env.step(zero_action)
+            if term or trunc:
+                break
+                
+        final_c = info["compliance"]
+        assert final_c < initial_c * 0.6, f"Residual zero action failed to achieve >40% stiffness reduction: {initial_c} -> {final_c}"
+        assert abs(info["volume"] - 0.4) < 1e-5, f"Residual volume constraint violated: {info['volume']}"
+
+    def test_residual_alpha_zero_insensitivity(self):
+        """When alpha=0.0, arbitrary actions must yield identical results to zero action."""
+        config = {
+            "nelx": 10, "nely": 5, "volfrac": 0.4, "max_steps": 5,
+            "project_volume": True, "residual": True, "alpha": 0.0
+        }
+        env1 = TopOptEnv(config=config)
+        env1.reset(seed=42)
+        _, _, _, _, info1 = env1.step(np.zeros((5, 10), dtype=np.float32))
+        
+        env2 = TopOptEnv(config=config)
+        env2.reset(seed=42)
+        _, _, _, _, info2 = env2.step(np.ones((5, 10), dtype=np.float32))
+        
+        assert np.isclose(info1["compliance"], info2["compliance"], atol=1e-6), "alpha=0.0 did not nullify residual actions!"

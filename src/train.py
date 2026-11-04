@@ -3,11 +3,10 @@ train.py
 ========
 Audited & Hardened PPO training pipeline for RL Topology Optimization.
 
-Conforms strictly to audit requirements:
-- Multi-seed training (e.g. seeds 42, 43, 44) for rigorous Gate 3 evaluation
-- log_std_init = -1.5 prevents Gaussian policy from saturating into bang-bang noise
-- Action space [-1, 1] scaled by delta_max = 0.05 inside env
-- C0-normalized reward with strict bisection volume projection
+Supports:
+1. Standard Mode (Gate 3): Trains raw continuous PPO policy to beat Random & Uniform.
+2. Residual Mode (Stage 4): Trains Heuristic Residual PPO policy (alpha = 0.2) to close the gap with Classical SIMP.
+- Multi-seed training (e.g. seeds 42, 43, 44) for rigorous evaluation
 - Tracks reward clipping events to guarantee gradients are never artificially squashed
 - Evaluates across all seeds to compute mean ± std
 """
@@ -52,23 +51,31 @@ class FlatObsWrapper(TopOptEnv):
         return obs.flatten().astype(np.float32), r, term, trunc, info
 
 
-def train_single_seed(env_config, total_timesteps=50000, seed=42):
+def train_single_seed(
+    env_config,
+    total_timesteps=50000,
+    seed=42,
+    mode="standard",
+    lr=3e-4,
+    log_std_init=-1.5,
+    ckpt_prefix="ppo_gate3"
+):
     print(f"\n==========================================================")
-    print(f" Training PPO on TopOptEnv | Seed: {seed} | Steps: {total_timesteps}")
+    print(f" Training PPO on TopOptEnv [{mode.upper()}] | Seed: {seed} | Steps: {total_timesteps}")
     print(f"==========================================================")
     
     train_env = FlatObsWrapper(config=env_config, seed=seed)
     monitored_env = Monitor(train_env)
     
     policy_kwargs = dict(
-        log_std_init=-1.5,
+        log_std_init=log_std_init,
         net_arch=dict(pi=[128, 128], vf=[128, 128])
     )
     
     model = PPO(
         "MlpPolicy",
         monitored_env,
-        learning_rate=3e-4,
+        learning_rate=lr,
         n_steps=256,
         batch_size=64,
         n_epochs=5,
@@ -86,7 +93,7 @@ def train_single_seed(env_config, total_timesteps=50000, seed=42):
     train_time = time.time() - t0
     
     os.makedirs("results/checkpoints", exist_ok=True)
-    ckpt = f"results/checkpoints/ppo_gate3_seed{seed}.zip"
+    ckpt = f"results/checkpoints/{ckpt_prefix}_seed{seed}.zip"
     model.save(ckpt)
     print(f"[Done] Seed {seed} trained in {train_time:.1f}s ({total_timesteps/train_time:.0f} FPS). Checkpoint saved to {ckpt}")
     
@@ -109,7 +116,17 @@ def train_single_seed(env_config, total_timesteps=50000, seed=42):
     return final_c, clip_events
 
 
-def train_multi_seed(seeds=[42, 43, 44], total_timesteps=50000):
+def train_multi_seed(
+    seeds=[42, 43, 44],
+    total_timesteps=30000,
+    mode="residual",
+    alpha=0.2
+):
+    is_residual = (mode == "residual")
+    lr = 1e-4 if is_residual else 3e-4
+    log_std_init = -2.0 if is_residual else -1.5
+    ckpt_prefix = "ppo_stage4_residual" if is_residual else "ppo_gate3"
+    
     env_config = {
         "nelx": 30,
         "nely": 10,
@@ -123,7 +140,9 @@ def train_multi_seed(seeds=[42, 43, 44], total_timesteps=50000):
         "filter_type": "density",
         "channels": 4,
         "Emin": 1e-9,
-        "reward_clip": 2.0
+        "reward_clip": 2.0,
+        "residual": is_residual,
+        "alpha": alpha
     }
     
     results = []
@@ -131,7 +150,15 @@ def train_multi_seed(seeds=[42, 43, 44], total_timesteps=50000):
     t_start = time.time()
     
     for seed in seeds:
-        c, clips = train_single_seed(env_config, total_timesteps=total_timesteps, seed=seed)
+        c, clips = train_single_seed(
+            env_config,
+            total_timesteps=total_timesteps,
+            seed=seed,
+            mode=mode,
+            lr=lr,
+            log_std_init=log_std_init,
+            ckpt_prefix=ckpt_prefix
+        )
         results.append(c)
         total_clips += clips
         
@@ -140,11 +167,11 @@ def train_multi_seed(seeds=[42, 43, 44], total_timesteps=50000):
     total_time = time.time() - t_start
     
     print("\n==========================================================")
-    print(f" Multi-Seed Training Summary ({len(seeds)} Seeds, {total_timesteps} Steps each)")
+    print(f" Multi-Seed Training Summary [{mode.upper()}] ({len(seeds)} Seeds, {total_timesteps} Steps each)")
     print("==========================================================")
     for s, c in zip(seeds, results):
         print(f"  Seed {s}: Compliance = {c:.2f}")
-    print(f"  Aggregate: {mean_c:.2f} ± {std_c:.2f}")
+    print(f"  Aggregate Compliance: {mean_c:.2f} ± {std_c:.2f}")
     print(f"  Total Reward Clip Events during evaluation: {total_clips}")
     print(f"  Total Elapsed Time: {total_time:.1f}s")
     print("==========================================================")
@@ -153,8 +180,10 @@ def train_multi_seed(seeds=[42, 43, 44], total_timesteps=50000):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train PPO on TopOptEnv across multiple seeds.")
-    parser.add_argument("--timesteps", type=int, default=50000, help="Timesteps per seed")
+    parser.add_argument("--timesteps", type=int, default=30000, help="Timesteps per seed")
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 43, 44], help="Random seeds")
+    parser.add_argument("--mode", type=str, default="residual", choices=["standard", "residual"], help="Training mode")
+    parser.add_argument("--alpha", type=float, default=0.2, help="Residual scaling alpha")
     args = parser.parse_args()
     
-    train_multi_seed(seeds=args.seeds, total_timesteps=args.timesteps)
+    train_multi_seed(seeds=args.seeds, total_timesteps=args.timesteps, mode=args.mode, alpha=args.alpha)
