@@ -1,0 +1,5 @@
+case_name,bc_type,nelx,nely,target_volfrac,final_compliance,iterations,runtime_seconds,final_volfrac,grayness,converged
+cantilever_30x10,cantilever_mid_right,30,10,0.4,399.3774,95,0.2182,0.4001,0.6667,True
+cantilever_60x20,cantilever_mid_right,60,20,0.4,247.8027,250,2.7792,0.4001,0.335,False
+mbb_30x10,mbb,30,10,0.5,225.665,113,0.2694,0.5,0.3967,True
+mbb_60x20,mbb,60,20,0.5,203.1714,164,1.7038,0.5001,0.21,True

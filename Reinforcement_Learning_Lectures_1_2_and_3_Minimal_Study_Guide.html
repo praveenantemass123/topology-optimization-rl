@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An interactive, playful study guide to Reinforcement Learning Lectures 1, 2 and 3.">
+<title>Reinforcement Learning | Clean Study Guide</title>
+<style>
+
+/* MINIMAL READING-FIRST REDESIGN */
+:root{
+ --bg:#f6f7f9;--surface:#fff;--ink:#20242b;--muted:#68717d;--line:#e7e9ed;
+ --accent:#315f8c;--accent-soft:#edf3f8;--radius:12px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.75}
+.topbar{height:3px;background:#315f8c}
+.hero{background:#fff;color:var(--ink);padding:48px 24px 34px;border-bottom:1px solid var(--line)}
+.hero:after{display:none}
+.hero h1{max-width:900px;color:#1e2935;font-size:clamp(2rem,4vw,3.2rem);font-weight:700;letter-spacing:-.04em;line-height:1.15}
+.hero .subtitle{max-width:760px;color:var(--muted);font-size:1.05rem}
+.kicker{color:#52718d;letter-spacing:.12em}
+.meta span{background:#f4f6f8;color:#65707b;border:1px solid var(--line);border-radius:6px}
+.toolbar button{border-radius:7px}
+.shell{max-width:1260px;grid-template-columns:250px minmax(0,1fr);gap:26px;margin:28px auto}
+.sidebar,.article{background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:none}
+.sidebar{padding:18px}
+.sidebar h2{color:#7b8490}
+#toc-search{border-radius:7px;background:#fafbfc;border:1px solid var(--line);padding:10px 12px}
+.toc-link{border-radius:5px;padding:7px 9px;color:#59636f}
+.toc-link:hover,.toc-link.active{background:#edf3f8;color:#315f8c}
+.article{padding:clamp(24px,4vw,54px)}
+.intro-note{background:#f4f7fa;border:0;border-left:3px solid #7895b0;border-radius:3px;padding:15px 18px;color:#47515c}
+.article h1{color:#202a35;letter-spacing:-.025em}
+.article h2{background:transparent;color:#25384b;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 10px;margin:2.6rem 0 1rem;font-size:1.55rem;letter-spacing:-.025em;scroll-margin-top:20px}
+.section-number{width:28px;height:28px;border-radius:6px;background:#eaf0f5;color:#315f8c;box-shadow:none}
+.article h3{color:#315f8c;font-size:1.12rem;margin-top:1.7rem}
+.article p,.article li{color:#3e4650}
+.article strong{color:#202a35}
+.article blockquote{border-left:3px solid #9aafc2;background:#f6f8fa;border-radius:0;padding:12px 17px;color:#4c5661}
+.article table{border:1px solid var(--line);border-radius:7px;box-shadow:none}
+.article thead th{background:#f2f5f7;color:#34495d}
+.article tbody tr:nth-child(even){background:#fafbfc}
+.article th,.article td{border-color:var(--line)}
+.article pre{border-radius:7px}
+.learning-tools{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.learning-tools button,.section-done{border:1px solid var(--line);background:#fff;color:#536273;border-radius:6px;padding:7px 11px;font-size:.85rem;box-shadow:none;cursor:pointer}
+.learning-tools button:hover,.section-done:hover{background:#f3f6f8}
+.reading-progress{position:fixed;z-index:50;top:0;left:0;height:3px;width:0;background:#527da3}
+.section-wrap{padding:0 0 12px;margin-bottom:16px;border-bottom:1px solid #eef0f2}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.section-head h2{flex:1;min-width:200px}
+.section-done{white-space:nowrap}
+.section-done.done{background:#eef5f0;color:#3f7350;border-color:#d5e6d9}
+.section-wrap .section-body{padding:0 2px 8px}
+.section-wrap.collapsed .section-body{display:none}
+.study-stats{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
+.stat-chip{background:transparent;border:1px solid var(--line);border-radius:6px;padding:7px 10px;color:#66717d;font-size:.82rem}
+.stat-chip b{color:#315f8c}
+body.focus-mode .sidebar{display:none}
+body.focus-mode .shell{display:block;max-width:900px}
+body.focus-mode .article{padding:clamp(24px,5vw,65px)}
+body.dark-study{--bg:#171b20;--surface:#20262d;--ink:#e9edf1;--muted:#aab3bd;--line:#343d47;--accent:#9bb9d4;--accent-soft:#273542;background:#171b20;color:#e9edf1}
+body.dark-study .hero,body.dark-study .sidebar,body.dark-study .article{background:#20262d;border-color:#343d47}
+body.dark-study .hero h1,body.dark-study .article h1,body.dark-study .article h2,body.dark-study .article strong{color:#edf1f5}
+body.dark-study .hero .subtitle,body.dark-study .article p,body.dark-study .article li{color:#c2cad2}
+body.dark-study .article h3{color:#a9c4dd}
+body.dark-study .article h2{border-color:#343d47}
+body.dark-study .article blockquote,body.dark-study .intro-note{background:#27313b;color:#d0d8df}
+body.dark-study .article thead th{background:#2b3540;color:#e2eaf1}
+body.dark-study .article tbody tr:nth-child(even){background:#242c34}
+body.dark-study .article td,body.dark-study .article th{border-color:#39434e}
+body.dark-study .toc-link{color:#c2cad2}
+body.dark-study .toc-link:hover,body.dark-study .toc-link.active{background:#2b3540;color:#c8def1}
+body.dark-study #toc-search,body.dark-study .learning-tools button,body.dark-study .section-done{background:#242c34;color:#d5dee7;border-color:#3b4652}
+body.dark-study .stat-chip{border-color:#3b4652;color:#c2cad2}
+@media(max-width:900px){.shell{display:block;padding:0 12px}.sidebar{position:relative;top:auto;max-height:none;margin-bottom:14px}.hero{padding:36px 20px}.article{padding:24px 18px}}
+@media(prefers-reduced-motion:no-preference){.article h2{transition:color .15s}.article h2:hover{color:#527da3}}
+
+:root {
+ --bg:#f5f7fb; --surface:#fff; --surface-2:#f0f4fa; --ink:#172238; --muted:#65718a;
+ --line:#e1e7f0; --accent:#3157a4; --accent-2:#5278c5; --accent-soft:#eaf0ff;
+ --shadow:0 12px 34px rgba(24,42,76,.07); --radius:18px;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth;scroll-padding-top:26px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--accent)} button{font:inherit}
+.topbar{height:5px;background:linear-gradient(90deg,#203b70,#6689d2)}
+.hero{background:linear-gradient(130deg,#142747 0%,#203d70 55%,#3157a4 100%);color:white;padding:48px 24px 42px}
+.hero-inner{max-width:1280px;margin:auto}
+.kicker{font-size:.75rem;font-weight:750;letter-spacing:.16em;text-transform:uppercase;color:#c4d4f6}
+.hero h1{font-size:clamp(2.2rem,5vw,4rem);line-height:1.08;letter-spacing:-.045em;margin:13px 0 14px;max-width:900px}
+.hero .subtitle{font-size:1.15rem;color:#e1eaff;margin:0;max-width:760px}
+.meta{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
+.meta span{border:1px solid #ffffff35;background:#ffffff12;border-radius:999px;padding:6px 12px;font-size:.82rem;color:#e6edff}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-top:25px}
+.toolbar button{border:1px solid #ffffff55;color:white;background:#ffffff14;border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:.88rem}
+.toolbar button:hover{background:#ffffff28}
+.shell{max-width:1280px;margin:30px auto 60px;padding:0 22px;display:grid;grid-template-columns:290px minmax(0,1fr);gap:25px;align-items:start}
+.sidebar{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.sidebar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.sidebar h2{font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;margin:0;color:var(--muted)}
+.count{font-size:.72rem;color:var(--muted);background:var(--surface-2);padding:4px 8px;border-radius:999px}
+#toc-search{width:100%;border:1px solid var(--line);background:var(--bg);padding:10px 12px;border-radius:9px;margin-bottom:13px;color:var(--ink);outline:none}
+#toc-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.toc{display:flex;flex-direction:column;gap:3px}
+.toc-link{display:flex;gap:10px;align-items:flex-start;padding:7px 9px;border-radius:8px;text-decoration:none;color:#45516a;font-size:.83rem;line-height:1.4}
+.toc-link span{font-size:.68rem;font-weight:800;color:#8290a9;padding-top:2px;font-variant-numeric:tabular-nums}
+.toc-link:hover,.toc-link.active{background:var(--accent-soft);color:var(--accent)}
+.toc-link.active span{color:var(--accent)}
+.article{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(24px,4vw,58px);box-shadow:var(--shadow);min-width:0}
+.intro-note{background:linear-gradient(135deg,#edf3ff,#f7f9ff);border:1px solid #dce6fb;border-radius:14px;padding:18px 21px;margin:0 0 30px}
+.intro-note strong{color:#244783}
+.article h1{font-size:2rem;line-height:1.2;letter-spacing:-.03em;margin:0 0 18px}
+.article h2{display:flex;align-items:center;gap:13px;font-size:1.55rem;line-height:1.3;letter-spacing:-.025em;margin:3.1rem 0 1rem;padding-top:1.35rem;border-top:1px solid var(--line);scroll-margin-top:20px}
+.section-number{flex:none;display:inline-grid;place-items:center;width:35px;height:35px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:.82rem;font-weight:800;letter-spacing:0}
+.article h3{font-size:1.12rem;line-height:1.4;margin:1.7rem 0 .5rem;color:#263b60}
+.article p{margin:.75rem 0;color:#303c52}
+.article ul,.article ol{padding-left:1.45rem;margin:.75rem 0 1rem}
+.article li{padding-left:.2rem;margin:.38rem 0;color:#303c52}
+.article strong{color:#1d2e4d}
+.article blockquote{margin:1.3rem 0;padding:15px 19px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 11px 11px 0}
+.article table{width:100%;border-collapse:separate;border-spacing:0;margin:1.2rem 0 1.5rem;font-size:.91rem;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.article thead th{background:#edf2fa;color:#263b60;font-weight:750}
+.article th,.article td{padding:11px 13px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.article tr:last-child td{border-bottom:0} .article th:last-child,.article td:last-child{border-right:0}
+.article tbody tr:nth-child(even){background:#fafbfd}
+.article code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#f0f3f8;padding:.15em .4em;border-radius:5px;font-size:.9em;color:#294b86}
+.article pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f5fa;padding:16px;border-radius:12px;overflow:auto}
+.article hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+.article a{text-decoration-thickness:1px;text-underline-offset:3px}
+.footer{max-width:1280px;margin:-35px auto 35px;padding:0 22px;color:var(--muted);font-size:.82rem}
+.progress{position:fixed;top:0;left:0;height:4px;width:0;background:#86a8f2;z-index:5}
+@media(max-width:980px){.shell{grid-template-columns:1fr}.sidebar{position:static;max-height:none}.toc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.hero{padding:35px 19px}.shell{padding:0 12px;margin:15px auto 45px;gap:14px}.article{padding:22px 18px}.article h2{font-size:1.3rem}.toc{grid-template-columns:1fr}.article table{font-size:.82rem}.article th,.article td{padding:8px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{:root{--bg:white;--surface:white}body{background:white;font-size:11pt}.hero{background:white;color:#172238;padding:15px 0}.hero .subtitle,.kicker{color:#333}.meta,.toolbar,.sidebar,.progress{display:none!important}.shell{display:block;margin:0;padding:0;max-width:none}.article{border:0;box-shadow:none;padding:0}.article h2{break-after:avoid}.article table{break-inside:avoid}.footer{display:none}}
+
+.focus-mode .sidebar{display:none}
+.focus-mode .shell{grid-template-columns:minmax(0,1fr);max-width:1000px}
+@media print{.article section{break-before:page}}
+
+
+
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="topbar"></div>
+<header class="hero"><div class="hero-inner">
+<div class="kicker">UCL / DeepMind · Reinforcement Learning Course</div>
+<h1>Introduction to<br>Reinforcement Learning</h1>
+<p class="subtitle">Lectures 1, 2 &amp; 3 — Complete Guide, organized for learning and revision</p>
+<div class="meta"><span>Lecture by Hado van Hasselt</span><span>32 structured sections</span><span>Concepts · Mathematics · Examples</span></div>
+<div class="toolbar">
+<button onclick="window.print()">Print / Save as PDF</button>
+<button onclick="document.body.classList.toggle('focus-mode')">Reading mode</button>
+</div>
+</div></header>
+<div class="shell">
+<aside class="sidebar">
+<div class="sidebar-head"><h2>Lecture contents</h2><span class="count">32 sections</span></div>
+<input id="toc-search" type="search" placeholder="Find a topic…" aria-label="Search lecture contents">
+<nav class="toc" id="toc"><a class="toc-link" href="#section-1"><span>01</span>1. Course context and logistics</a>
+<a class="toc-link" href="#section-2"><span>02</span>2. What is RL? Motivation from AI</a>
+<a class="toc-link" href="#section-3"><span>03</span>3. The agent–environment loop</a>
+<a class="toc-link" href="#section-4"><span>04</span>4. Reward and the reward hypothesis</a>
+<a class="toc-link" href="#section-5"><span>05</span>5. Where RL applies, and two reasons to learn</a>
+<a class="toc-link" href="#section-6"><span>06</span>6. Return, value and action value</a>
+<a class="toc-link" href="#section-7"><span>07</span>7. The discount factor</a>
+<a class="toc-link" href="#section-8"><span>08</span>8. What is inside an agent</a>
+<a class="toc-link" href="#section-9"><span>09</span>9. State, history and the Markov property</a>
+<a class="toc-link" href="#section-10"><span>10</span>10. Partial observability and the maze</a>
+<a class="toc-link" href="#section-11"><span>11</span>11. Policies</a>
+<a class="toc-link" href="#section-12"><span>12</span>12. Value functions and the Bellman equations</a>
+<a class="toc-link" href="#section-13"><span>13</span>13. Models of the environment</a>
+<a class="toc-link" href="#section-14"><span>14</span>14. Agent categories</a>
+<a class="toc-link" href="#section-15"><span>15</span>15. Prediction, control, learning and planning</a>
+<a class="toc-link" href="#section-16"><span>16</span>16. Deep reinforcement learning</a>
+<a class="toc-link" href="#section-17"><span>17</span>17. Worked examples</a>
+<a class="toc-link" href="#section-18"><span>18</span>18. Course roadmap and takeaways</a>
+<a class="toc-link" href="#lecture-2"><span>L2</span><strong>Lecture 2 · Exploration &amp; Exploitation</strong></a>
+<a class="toc-link" href="#l2-section-1"><span>19</span>1. The exploration–exploitation dilemma</a>
+<a class="toc-link" href="#l2-section-2"><span>20</span>2. Multi-armed bandits</a>
+<a class="toc-link" href="#l2-section-3"><span>21</span>3. Action values and regret</a>
+<a class="toc-link" href="#l2-section-4"><span>22</span>4. Greedy and ε-greedy methods</a>
+<a class="toc-link" href="#l2-section-5"><span>23</span>5. Policy gradients and softmax</a>
+<a class="toc-link" href="#l2-section-6"><span>24</span>6. REINFORCE and the log-likelihood trick</a>
+<a class="toc-link" href="#l2-section-7"><span>25</span>7. Optimism under uncertainty</a>
+<a class="toc-link" href="#l2-section-8"><span>26</span>8. Upper Confidence Bound (UCB)</a>
+<a class="toc-link" href="#l2-section-9"><span>27</span>9. Hoeffding’s inequality and UCB</a>
+<a class="toc-link" href="#l2-section-10"><span>28</span>10. Bayesian bandits</a>
+<a class="toc-link" href="#l2-section-11"><span>29</span>11. Thompson sampling</a>
+<a class="toc-link" href="#l2-section-12"><span>30</span>12. Planning to explore</a>
+<a class="toc-link" href="#l2-section-13"><span>31</span>13. Algorithm comparison</a>
+<a class="toc-link" href="#l2-section-14"><span>32</span>14. Revision sheet and questions</a>
+
+<a class="toc-link" href="#lecture-3"><span>L3</span><strong>Lecture 3 · MDPs &amp; Dynamic Programming</strong></a>
+<a class="toc-link" href="#l3-section-1"><span>33</span>1. From bandits to sequential RL</a>
+<a class="toc-link" href="#l3-section-2"><span>34</span>2. Markov Decision Processes</a>
+<a class="toc-link" href="#l3-section-3"><span>35</span>3. The Markov property</a>
+<a class="toc-link" href="#l3-section-4"><span>36</span>4. Example: cleaning robot</a>
+<a class="toc-link" href="#l3-section-5"><span>37</span>5. Returns and discounting</a>
+<a class="toc-link" href="#l3-section-6"><span>38</span>6. Policies and value functions</a>
+<a class="toc-link" href="#l3-section-7"><span>39</span>7. Optimal values and policies</a>
+<a class="toc-link" href="#l3-section-8"><span>40</span>8. Bellman expectation equations</a>
+<a class="toc-link" href="#l3-section-9"><span>41</span>9. Bellman optimality equations</a>
+<a class="toc-link" href="#l3-section-10"><span>42</span>10. Prediction vs. control</a>
+<a class="toc-link" href="#l3-section-11"><span>43</span>11. Matrix solution to evaluation</a>
+<a class="toc-link" href="#l3-section-12"><span>44</span>12. Dynamic programming</a>
+<a class="toc-link" href="#l3-section-13"><span>45</span>13. Iterative policy evaluation</a>
+<a class="toc-link" href="#l3-section-14"><span>46</span>14. Policy improvement &amp; iteration</a>
+<a class="toc-link" href="#l3-section-15"><span>47</span>15. Value iteration</a>
+<a class="toc-link" href="#l3-section-16"><span>48</span>16. Asynchronous DP &amp; sample backups</a>
+<a class="toc-link" href="#l3-section-17"><span>49</span>17. Revision sheet &amp; questions</a>
+
+</nav>
+</aside>
+<main class="article" id="article">
+<div class="intro-note"><strong>Core idea.</strong> Reinforcement learning is the science and framework of learning to make decisions from interaction. An agent acts, observes, receives a scalar reward, and learns to maximize cumulative future reward.</div>
+<p>UCL / DeepMind · Reinforcement Learning course · Lecture 1 by Hado van Hasselt</p>
+<h1>Introduction to Reinforcement Learning: Complete Guide</h1>
+<p>One structured walk-through of the lecture: motivation, the framework, the mathematics, the agent’s components, and worked examples. Companion text: Sutton &amp; Barto, <em>Reinforcement Learning: An Introduction</em>.</p>
+<p><strong>In one line:</strong> RL is the science and framework of learning to make decisions from interaction. An agent acts, observes and receives a scalar reward, and learns to maximize cumulative future reward.</p>
+<h2 id="section-1"><span class="section-number">01</span>1. Course context and logistics</h2>
+<p>Moodle is the communication portal; ask questions on its forum so everyone benefits. Grading is by assignments, with no exam this year. Lectures were pre-recorded because of COVID-19.</p>
+<h2 id="section-2"><span class="section-number">02</span>2. What is RL? Motivation from AI</h2>
+<h3>The big-picture argument</h3>
+<ul>
+<li><strong>Industrial revolution:</strong> automating repeated <em>physical</em> work (steam trains replacing hauling carts).</li>
+<li><strong>Digital revolution:</strong> automating repeated <em>mental</em> work (a calculator runs addition and multiplication that we already know how to do).</li>
+<li>In both, humans first had to <em>find the solution</em>. The next step is letting <strong>machines find solutions themselves</strong>. We specify a problem and a goal, and the machine works out how to solve it. That is AI, and it involves <strong>learning</strong>, <strong>autonomy</strong> and <strong>decisions</strong>.</li>
+</ul>
+<h3>Alan Turing, 1950</h3>
+<p>In “Computing Machinery and Intelligence” Turing asked “can machines think?” and suggested that instead of programming an adult mind, we should program a <em>child’s</em> mind (little mechanism, many blank sheets) and subject it to education. Writing a program that can learn may be easier than writing one with all the adult’s skills. The lecturer invites you to ponder whether you agree.</p>
+<p><strong>Working definition of AI used here:</strong> the ability to <strong>learn to make decisions to achieve goals</strong>. It is not the only definition, but it is the central question of the course.</p>
+<h3>How RL learning differs from other learning</h3>
+<ul>
+<li><strong>Active, not passive:</strong> your actions influence the data you see.</li>
+<li><strong>Sequential:</strong> later interactions depend on earlier ones.</li>
+<li><strong>Goal-directed:</strong> behavior has a purpose, from picking up a glass down to individual muscle signals.</li>
+<li><strong>No examples of optimal behavior:</strong> nobody tells you the exact low-level actions (muscle commands). You learn by optimizing a reward signal such as satisfaction.</li>
+</ul>
+<h3>Three ways to get a machine to do a task</h3>
+<p>Think of three ways to get a machine to do a task. <strong>(a) Hand-code it:</strong> a human works out the solution and writes it down (a calculator). <strong>(b) Supervised learning:</strong> a human supplies the correct answer for many examples. <strong>(c) Reinforcement learning:</strong> a human supplies only a <em>goal</em> (through a reward) and the machine discovers the behavior by trying things.</p>
+<p>Why is (c) powerful? Nobody can write down the exact muscle commands for riding a bicycle, or the best move in every Go position. The lecture’s point is that most human learning is like this: someone may show you a high-level example (“write like this”) but never the low-level signals needed to carry it out. RL targets exactly that gap.</p>
+<h2 id="section-3"><span class="section-number">03</span>3. The agent–environment loop</h2>
+<p>An <strong>agent</strong> interacts with an <strong>environment</strong>. The agent sends <strong>actions</strong>; the environment returns <strong>observations</strong> (and rewards). The agent may be a robot in the real world, or a program in a game or on the internet. The agent’s sensors (for example a camera) define what it observes.</p>
+<p>at time t: agent receives O_t, R_t agent emits A_t environment returns O_(t+1), R_(t+1)</p>
+<p>The time index increments after the action is taken (convention). RL can be extended to continuous time, but this course uses discrete steps. The reward can be viewed as coming from the environment or as an internal preference over observations; either way a goal must be clearly specified.</p>
+<h2 id="section-4"><span class="section-number">04</span>4. Reward and the reward hypothesis</h2>
+<p>The claim: <strong>any goal can be expressed as maximizing the cumulative sum of a scalar reward.</strong> Three things are often misread:</p>
+<ul>
+<li><strong>It says a reward exists, not that it is easy to find.</strong> Designing a reward that is both correct and easy to optimize is a real research problem (reward design).</li>
+<li><strong>Cumulative, not immediate.</strong> “Maximize the next reward” is a much weaker goal than “maximize the total.”</li>
+<li><strong>Timing can be encoded.</strong> Compare two rewards for “reach the exit”:</li>
+</ul>
+<table>
+<thead>
+<tr>
+  <th>Design</th>
+  <th>Reward</th>
+  <th>Resulting behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Sparse goal</td>
+  <td>0 each step, +1 on reaching the exit</td>
+  <td>Any path that eventually arrives scores the same (without discounting)</td>
+</tr>
+<tr>
+  <td>Step penalty</td>
+  <td>−1 each step, 0 after the exit</td>
+  <td>Fewest steps wins, because each extra step costs 1</td>
+</tr>
+</tbody>
+</table>
+<p>Same goal, different incentives, and the second says <em>how fast</em> as well as <em>whether</em>. In the Atari demo the reward was simply the change in score, so most steps give 0 and some give positive values.</p>
+<h2 id="section-5"><span class="section-number">05</span>5. Where RL applies, and two reasons to learn</h2>
+<p>Examples that RL has been successfully applied to: flying a helicopter (reward tied to air time or distance to a goal), managing an investment portfolio, controlling a power station, making a robot walk, and video and board games (+1 for a win, −1 for a loss in chess).</p>
+<p><strong>Important distinction:</strong> the RL <em>problem</em> (learning via interaction with rewards) is separate from today’s set of <em>solution algorithms</em>. If your problem has reward, sequential interaction and learning, you are doing RL, whether or not your algorithm is labelled “RL”. Be flexible about solutions.</p>
+<table>
+<thead>
+<tr>
+  <th>Reason to learn</th>
+  <th>Idea</th>
+  <th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Find a solution</td>
+  <td>Learn a policy, then deploy it. May include indirect steps (refuel first).</td>
+  <td>Strong chess program; manufacturing robot</td>
+</tr>
+<tr>
+  <td>Adapt online</td>
+  <td>Keep learning to handle unforeseen circumstances (unknown unknowns), not just to generalize widely.</td>
+  <td>Chess opponent that wins about half the time or keeps you playing; robot facing new terrain or wear and tear</td>
+</tr>
+</tbody>
+</table>
+<p>A small adaptive learner that tracks the world can be easier than one giant solution covering every possible case.</p>
+<h3>So, what is RL?</h3>
+<p>RL is the <strong>science and framework of learning to make decisions from interaction</strong>. It requires thinking about time and consequences, actively gathering experience, predicting the future and handling uncertainty. This makes it harder than, say, plain classification, but its scope is huge: it formalizes the AI problem. It works closely with deep learning.</p>
+<h3>Atari demo</h3>
+<p>One agent learned games such as Beam Rider and Enduro (the algorithm is <strong>DQN</strong>, covered later). Observations are raw <strong>pixels</strong>; actions are <strong>joystick inputs</strong> (directions and fire); reward is the <strong>change in score</strong> each step. The agent is not told what it controls or any strategy, and the same generic algorithm learns very different games.</p>
+<h2 id="section-6"><span class="section-number">06</span>6. Return, value and action value</h2>
+<h3>Return</h3>
+<p>Suppose after time t the rewards are 0, 0, +1, 0, +10 and the episode ends. The (undiscounted) return is 11. The return counts only the future, because actions at time t cannot change rewards already received.</p>
+<h3>Why expectation?</h3>
+<p>The world and the agent’s choices may be random, so the return itself is random. The <strong>value</strong> is its average over that randomness: v(s) = E[G_t | S_t = s]. It answers “how good is it, on average, to be here?”</p>
+<h3>Recursive view, with numbers</h3>
+<p>The return splits as G_t = R_(t+1) + γ G_(t+1). Take γ = 0.9 and rewards 0, 0, 10 afterward:</p>
+<p>G at last step before reward = 10 G one step earlier = 0 + 0.9 × 10 = 9 G two steps earlier = 0 + 0.9 × 9 = 8.1</p>
+<p>This is why values “shrink” with distance from a reward. It is also why the recursion is so useful: to know the value of now, you only need the immediate reward plus the (discounted) value of the next state.</p>
+<h3>State value vs action value</h3>
+<p><strong>v(s)</strong> averages over whatever the policy would do. <strong>q(s,a)</strong> fixes the first action to a, then follows the policy. If you know q for all actions, choosing the action with the largest q gives a better policy. This is the basis of Q-learning and DQN later.</p>
+<p>v_π(s) = Σ_a π(a|s) · q_π(s,a)</p>
+<h3>Delayed reward and credit assignment</h3>
+<p>A reward at time t may be caused by an action many steps earlier. This is the <strong>credit assignment</strong> problem. Values handle it by passing reward information backward: a state that leads (even indirectly) to a big reward gets a big value, so actions leading there look good. Refueling a helicopter earns nothing now or even costs reward, but it keeps the larger future rewards reachable, so it has high value.</p>
+<h2 id="section-7"><span class="section-number">07</span>7. The discount factor</h2>
+<p>G_t = R_(t+1) + γ R_(t+2) + γ² R_(t+3) + ... 0 ≤ γ ≤ 1</p>
+<table>
+<thead>
+<tr>
+  <th>γ</th>
+  <th>Reward 10 steps away is worth</th>
+  <th>Agent character</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>0</td>
+  <td>0</td>
+  <td>Myopic: only the next reward</td>
+</tr>
+<tr>
+  <td>0.5</td>
+  <td>≈ 0.001 of its size</td>
+  <td>Very short-sighted</td>
+</tr>
+<tr>
+  <td>0.9</td>
+  <td>≈ 0.35</td>
+  <td>Plans a few tens of steps ahead</td>
+</tr>
+<tr>
+  <td>1</td>
+  <td>full value</td>
+  <td>Far-sighted; can make sums infinite in non-ending tasks</td>
+</tr>
+</tbody>
+</table>
+<p>Two roles: (1) a <strong>mathematical convenience</strong> that keeps infinite sums finite (with +1 per step forever, γ = 1 gives infinity); (2) a <strong>goal-shaping parameter</strong>. With “0 until the goal, then +1” and γ &lt; 1, reaching the goal sooner gives a larger value, so the agent prefers short paths. The effective horizon is roughly 1/(1−γ) steps.</p>
+<h2 id="section-8"><span class="section-number">08</span>8. What is inside an agent</h2>
+<p>The framework has an <strong>environment</strong> (dynamics), a <strong>reward signal</strong> (the goal) and an <strong>agent</strong>. The agent contains:</p>
+<ul>
+<li><strong>Agent state</strong> (required): everything carried from one step to the next.</li>
+<li><strong>Policy</strong> (required): how actions are selected (even uniformly random counts).</li>
+<li><strong>Value function estimate</strong> (optional but common).</li>
+<li><strong>Model</strong> (optional): a prediction of the environment’s dynamics.</li>
+</ul>
+<h2 id="section-9"><span class="section-number">09</span>9. State, history and the Markov property</h2>
+<p>Use a concrete picture: you playing a video game.</p>
+<ul>
+<li><strong>Environment state:</strong> everything the game engine stores (all enemy positions, hidden timers, random-number seeds). You never see it all.</li>
+<li><strong>Observation:</strong> the screen you see right now.</li>
+<li><strong>History:</strong> every screen, button press and score change since you started.</li>
+<li><strong>Agent state:</strong> your mental summary: “enemy came from the left, I have two lives, power-up active.” It is what you carry forward, and it should be built from history only.</li>
+</ul>
+<p>The agent state is defined by an update rule: new state = u(old state, action, reward, new observation). Because of that, the agent never needs to store the whole history, only a running summary.</p>
+<h3>Full observability</h3>
+<p>If the observation <em>is</em> the environment state, the agent state can simply be the observation and no memory is needed. This is the special case that theory often assumes because it is easy to reason about, but it is rare in practice.</p>
+<p><strong>Meaning:</strong> “the future depends on the past only through the present state.” If you know S_t, the rest of the history adds no predictive information about the next reward and next state.</p>
+<p>p(r, s' | S_t = s) = p(r, s' | H_t) (probability of the next reward r and next state s' given the state equals that given the whole history)</p>
+<p>Examples: a chess position is Markov (the board tells you everything needed to continue; how you got there does not matter, ignoring special rules such as repetition and castling rights). The velocity-free screenshot of a ball in Pong is <strong>not</strong> Markov, because you cannot tell which way the ball is moving, so you need at least two frames. That is exactly why Atari agents stack frames.</p>
+<h3>Why it matters</h3>
+<p>Algorithms with the Markov assumption (value recursion, Bellman equations, MDP theory) only work cleanly if the state really summarizes the past. If it does not, the agent confuses different situations that look identical, which is called <strong>perceptual aliasing</strong>.</p>
+<h2 id="section-10"><span class="section-number">10</span>10. Partial observability and the maze</h2>
+<p>In a <strong>POMDP</strong> the agent sees an observation that is only a slice of the true state. The lecture’s maze: the agent sees just the 3×3 cells around itself. Two corridor spots can produce the same 3×3 view.</p>
+<ol>
+<li>Goal: top-left. Start: top-right.</li>
+<li>At the start, shortest path to the goal means going <strong>down</strong>.</li>
+<li>At the second, look-alike spot, shortest path means going <strong>up</strong>.</li>
+<li>A policy that is a function of the current observation must output one action for the identical view, so it must be wrong in at least one place.</li>
+</ol>
+<h3>Candidate fixes</h3>
+<table>
+<thead>
+<tr>
+  <th>Agent state</th>
+  <th>Works?</th>
+  <th>Issue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Current observation only</td>
+  <td>No</td>
+  <td>Aliasing, as shown</td>
+</tr>
+<tr>
+  <td>Full history</td>
+  <td>Yes (always Markov)</td>
+  <td>Grows without bound</td>
+</tr>
+<tr>
+  <td>Last two observations</td>
+  <td>Sometimes</td>
+  <td>Fails with random policy or noisy moves; works if the policy never walks between the ambiguous cells in the confusing order</td>
+</tr>
+<tr>
+  <td>Learned recurrent summary</td>
+  <td>Often well enough</td>
+  <td>Needs to be learned; approximate</td>
+</tr>
+</tbody>
+</table>
+<p>The moral: you rarely get a perfect Markov state, and you do not need one. What you need is a state good enough to support good decisions and value estimates.</p>
+<h3>The state update function</h3>
+<p>S_(t+1) = u(S_t, A_t, R_(t+1), O_(t+1))</p>
+<p>This recursive form covers every case above: concatenating everything gives the full history, keeping only the newest observation gives “state = observation”, and a two-slot buffer drops the oldest observation each step. We want <em>u</em> to compress the stream into a fixed-size state that keeps what matters for acting.</p>
+<h2 id="section-11"><span class="section-number">11</span>11. Policies</h2>
+<p>A <strong>policy</strong> maps agent state to action: deterministic <code>a = π(s)</code>, or stochastic <code>π(a|s)</code>, a probability distribution over actions. It is a function of the <em>agent</em> state, never of hidden environment state.</p>
+<h3>Why stochastic policies?</h3>
+<ul>
+<li>They give built-in <strong>exploration</strong>: trying actions that currently look worse in order to learn more (the topic of the next lecture).</li>
+<li>They are smooth to optimize: small changes to probabilities give small changes in behavior, which is what policy-gradient methods use.</li>
+<li>They include the deterministic case as a special case.</li>
+</ul>
+<h3>What “value of a policy” means</h3>
+<p>Writing v_π conditions on a <em>function</em>, not a fixed list of actions: at every future step the action is chosen by π after seeing the state reached, which may differ from run to run. Two policies can then be compared state by state, and a better one can be built from the values of the current one (<strong>evaluate, then improve</strong>). Later lectures turn this loop into real algorithms.</p>
+<h2 id="section-12"><span class="section-number">12</span>12. Value functions and the Bellman equations</h2>
+<p>Start with v_π(s) = E[G_t | S_t = s] and substitute G_t = R_(t+1) + γ G_(t+1):</p>
+<p>v_π(s) = E[ R_(t+1) + γ v_π(S_(t+1)) | S_t = s ]</p>
+<p>Read it as: <strong>value now = expected immediate reward + discounted value of where I land.</strong> This is a consistency condition: the values of neighbouring states must agree with each other.</p>
+<h3>Tiny example</h3>
+<p>States X → Y → Terminal. Reward +1 on X→Y, +2 on Y→Terminal, γ = 0.9, one action only.</p>
+<p>v(Terminal) = 0 v(Y) = 2 + 0.9 × 0 = 2 v(X) = 1 + 0.9 × 2 = 2.8</p>
+<h3>The optimality version</h3>
+<p>v*(s) = max_a E[ R_(t+1) + γ v*(S_(t+1)) | S_t = s, A_t = a ]</p>
+<p>The only change is “max over actions” instead of “follow policy π.” Because the unknown v* appears on both sides, algorithms can start with a guess, repeatedly apply the right-hand side, and converge to v*. That idea, fixed-point iteration on the Bellman equation, is behind dynamic programming, Q-learning and DQN in later lectures.</p>
+<h3>From values to behavior</h3>
+<p>Given q*, the optimal policy is just: in each state take the action with the highest q*. This is why a good value function is so valuable, and also why approximate values can still give very good policies.</p>
+<h2 id="section-13"><span class="section-number">13</span>13. Models of the environment</h2>
+<h3>Model</h3>
+<p>A model predicts what the environment does next: a transition model p(s'|s,a) and a reward model E[R|s,a]. Unlike a value function, a model does not directly give a policy; you need <strong>planning</strong> on top. Model variants include distribution models (full distribution), expectation models, and sample models (a plausible next state). The right choice is not settled.</p>
+<p>A <strong>value function</strong> says how good things are; it hides how the world works. A <strong>model</strong> says how the world works; to get behavior from it you still must plan (search or simulate). Value-based methods act immediately but can’t answer “what if”; model-based methods can imagine futures but depend on an accurate model. In the lecture’s maze example a learned model missed an unexplored corner, so planning inside it can only solve what it has seen.</p>
+<h3>Simple maze illustration</h3>
+<p>Start at the left, goal at the right, reward −1 per step, actions N/E/S/W, state = position (fully observable). The optimal policy is the shortest path; its value rises by 1 in magnitude for each step further from the goal (−1, −2, and so on). A learned model can be imperfect, for example missing part of the maze it has not explored; policies and values can also be imperfect.</p>
+<h2 id="section-14"><span class="section-number">14</span>14. Agent categories</h2>
+<p>Two independent questions classify an agent: <strong>what does it learn</strong> (value, policy, both) and <strong>does it have a model</strong>?</p>
+<table>
+<thead>
+<tr>
+  <th>Type</th>
+  <th>Components</th>
+  <th>How it acts</th>
+  <th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Value-based</td>
+  <td>Value function only</td>
+  <td>Policy read off values, e.g. pick the action with the highest q (mostly)</td>
+  <td>The Atari DQN agent</td>
+</tr>
+<tr>
+  <td>Policy-based</td>
+  <td>Explicit policy only</td>
+  <td>Samples from π directly</td>
+  <td>Learns without values; example next lecture</td>
+</tr>
+<tr>
+  <td>Actor-critic</td>
+  <td>Policy (actor) + value (critic)</td>
+  <td>Actor acts, critic scores its choices and guides updates</td>
+  <td>Common in deep RL</td>
+</tr>
+<tr>
+  <td>Model-free</td>
+  <td>Policy and/or value, no dynamics model</td>
+  <td>Acts from learned values/policy</td>
+  <td>Simple; needs plenty of real experience</td>
+</tr>
+<tr>
+  <td>Model-based</td>
+  <td>Dynamics model, optionally policy/value</td>
+  <td>Plans with the model (or mixes planning with a policy)</td>
+  <td>Can “imagine”; limited by model accuracy</td>
+</tr>
+</tbody>
+</table>
+<p>A value function does model something (expected cumulative reward), but in RL vocabulary “model” means a model of the environment’s dynamics, so a pure value agent is called model-free. These labels are conventions, not a perfect division.</p>
+<h2 id="section-15"><span class="section-number">15</span>15. Prediction, control, learning and planning</h2>
+<h3>Prediction vs control</h3>
+<p><strong>Prediction</strong> evaluates the future for a given policy (for instance, the value of the uniformly random policy). <strong>Control</strong> optimizes the future by finding the best policy. They are linked: π* is the policy whose value is highest, so values rank policies, and good predictions let you improve control.</p>
+<h3>Learning vs planning</h3>
+<table>
+<thead>
+<tr>
+  <th></th>
+  <th>Learning</th>
+  <th>Planning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Input</td>
+  <td>New experience from the interaction loop</td>
+  <td>A model (given or learned); no new experience</td>
+</tr>
+<tr>
+  <td>Nature</td>
+  <td>Absorbs data into values, policy or model</td>
+  <td>Internal computation that improves policy or predictions</td>
+</tr>
+</tbody>
+</table>
+<p>Both can run together in one agent. <strong>Caveat:</strong> planning in a <em>learned</em> model can exploit its errors. If the model wrongly believes a wall has a hole, the shortest path goes through that hole and the resulting policy fails in the real world.</p>
+<h3>Is prediction enough?</h3>
+<p>Sutton often argues that predictions are a rich form of knowledge: if you could predict everything, what else would you need? The lecture’s hint is that with imperfect approximation it still helps to store predictions and policies (skills) separately, since knowing the world does not automatically tell you what to do.</p>
+<h2 id="section-16"><span class="section-number">16</span>16. Deep reinforcement learning</h2>
+<p>Every component is a function: policy (state→action probabilities), value (state→expected return), model (state, action→next state, reward), and the state update <em>u</em>. Neural networks are strong function learners, and combining them with RL is <strong>deep RL</strong>.</p>
+<h3>Why it is not plug-and-play</h3>
+<ul>
+<li><strong>Correlated data:</strong> a robot in one room produces strongly similar consecutive samples, while supervised learning assumes roughly independent examples.</li>
+<li><strong>Non-stationary targets:</strong> when the policy changes, the value function of the <em>current</em> policy changes with it, so the learning target keeps moving.</li>
+</ul>
+<p>Later lectures cover the remedies; the point here is that deep RL is a research area of its own at the intersection of the two fields.</p>
+<h2 id="section-17"><span class="section-number">17</span>17. Worked examples</h2>
+<h3>Atari (DQN)</h3>
+<table>
+<thead>
+<tr>
+  <th>Element</th>
+  <th>In Atari</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Observation</td>
+  <td>Raw screen pixels</td>
+</tr>
+<tr>
+  <td>Action</td>
+  <td>Joystick directions plus fire</td>
+</tr>
+<tr>
+  <td>Reward</td>
+  <td>Change in score each step (mostly 0, sometimes positive)</td>
+</tr>
+<tr>
+  <td>Prior knowledge</td>
+  <td>None: not told what the player is, the rules or any strategy</td>
+</tr>
+</tbody>
+</table>
+<p>Because the algorithm is generic, the same agent learns very different games. It is a value-based, model-free agent.</p>
+<h3>The 5×5 grid world (Sutton &amp; Barto), γ = 0.9</h3>
+<ul>
+<li>Bumping into a wall: −1. Most other steps: 0.</li>
+<li>Any action in <strong>A</strong>: +10 and teleport to <strong>A′</strong>. Any action in <strong>B</strong>: +5 and teleport to <strong>B′</strong>.</li>
+</ul>
+<p><strong>Prediction (uniform random policy).</strong> v(A) ≈ 8.8, below 10 because after the +10 the random agent soon bumps into walls and collects −1 penalties. v(A′) ≈ −1.3 since A′ sits at the edge and the walk back toward A is unproductive. Bottom-left states are strongly negative because a random agent repeatedly hits walls.</p>
+<p><strong>Control (optimal policy).</strong> All values become positive since an optimal agent never bumps into a wall. Even though B is closer to B′, looping A → A′ → … → A pays +10 per loop, which beats the +5 loop of B, so almost every state heads to A. Only the top-right corner jumps into B, because walking around B to reach A would take longer than being teleported to B′ and walking on to A. These conclusions are hard to see by inspection, but learning and planning algorithms find them automatically.</p>
+<h3>Learned locomotion</h3>
+<p>Simulated 2D and 3D bodies learned to run, jump and climb obstacles with one reward: speed in a single direction. They sensed the terrain through simplified vision and proprioception (sensing their own limbs). No gait was hand-designed, and the same learner worked across body types and terrains.</p>
+<h2 id="section-18"><span class="section-number">18</span>18. Course roadmap and takeaways</h2>
+<ol>
+<li>Exploration and <strong>bandits</strong> (one-step decision problems), next lecture.</li>
+<li><strong>Markov decision processes</strong> and planning with <strong>dynamic programming</strong> (Diana Borsa).</li>
+<li><strong>Model-free prediction and control</strong>, including Q-learning and DQN (deep Q-network, Q-learning plus deep nets).</li>
+<li><strong>Policy-gradient</strong> and <strong>actor-critic</strong> methods.</li>
+<li><strong>Deep RL</strong>.</li>
+<li><strong>Integrating learning and planning</strong>.</li>
+</ol>
+<p>The emphasis is on core principles rather than current state-of-the-art algorithms, which will change, while principles let you understand and invent new ones.</p>
+<p><strong>Key takeaways:</strong></p>
+<ul>
+<li>RL is learning to decide from interaction, to maximize cumulative reward.</li>
+<li>Any goal can (in principle) be expressed as a reward.</li>
+<li>The agent has state, a policy, and optionally values and a model.</li>
+<li>Most real problems are partially observable, so the agent state must be built from history.</li>
+<li>Value functions (and Bellman equations) are the main tool for turning prediction into good control.</li>
+<li>Separate the RL <em>problem</em> from any particular <em>algorithm</em>.</li>
+</ul>
+<p><strong>Check yourself:</strong></p>
+<ol>
+<li>Why can γ = 1 be a problem in a task that never ends?</li>
+<li>Give an observation that is not Markov in a game you know, and a minimal fix.</li>
+<li>Rewrite v(s) in terms of q(s,a) and π.</li>
+<li>Why does the Bellman optimality equation not mention a policy?</li>
+</ol>
+
+
+<section id="lecture-2" aria-label="Lecture 2: Exploration and Exploitation">
+<div class="intro-note">
+<strong>Lecture 2 at a glance.</strong> An agent must balance using the action it currently believes is best (exploitation) with trying other actions to learn whether they may be better (exploration). Bandit problems isolate this challenge and let us compare exploration strategies clearly.
+</div>
+<h1>Lecture 2: Exploration and Exploitation</h1>
+<p>This chapter develops the exploration–exploitation problem through multi-armed bandits. It introduces action-value estimates, regret, simple greedy strategies, stochastic policies, optimism, confidence bounds and Bayesian sampling. The focus is on why an agent explores and how uncertainty can guide its choices.</p>
+
+<h2 id="l2-section-1"><span class="section-number">01</span>1. The exploration–exploitation dilemma</h2>
+<p>At each decision, an agent faces two competing possibilities:</p>
+<ul>
+<li><strong>Exploitation:</strong> choose the action that currently appears to have the highest expected reward, making use of what has already been learned.</li>
+<li><strong>Exploration:</strong> choose an action partly to gain information, even if its estimated reward is currently lower.</li>
+</ul>
+<p>Pure exploitation can get stuck with a misleading early estimate. Pure exploration wastes opportunities by repeatedly testing actions instead of using what has been learned. A successful learner needs a balance.</p>
+<blockquote><strong>Intuition:</strong> Imagine choosing between several cafés. You can keep visiting the one you already like, or occasionally try another café that might turn out to be even better.</blockquote>
+<p>The key difficulty is that the agent usually does not know the true reward distribution of each action. It must learn those properties while making decisions.</p>
+
+<h2 id="l2-section-2"><span class="section-number">02</span>2. Multi-armed bandits</h2>
+<p>A <strong>multi-armed bandit</strong> is a simplified sequential decision problem. There are several actions (often pictured as slot-machine arms). At each time step the agent chooses one action and receives a reward. The reward distribution for an action is initially unknown.</p>
+<h3>Basic setup</h3>
+<ul>
+<li>There are \(k\) available actions, indexed by \(a\in\{1,\ldots,k\}\).</li>
+<li>Choosing action \(a\) produces a reward \(R_t\) drawn from that action’s reward distribution.</li>
+<li>The expected reward of action \(a\) is its true action value, often written \(q_*(a)\).</li>
+<li>The agent observes the reward it receives, updates its estimate, and chooses again.</li>
+</ul>
+<p>Unlike the full reinforcement-learning setting introduced in Lecture 1, the basic bandit has no changing state and no long sequence of state transitions to plan through. It isolates the problem of choosing among uncertain actions.</p>
+<h3>Why the bandit is useful</h3>
+<p>Although simple, bandits capture a central RL challenge: actions both <em>earn reward</em> and <em>produce information</em>. This makes them a useful first setting for studying exploration strategies.</p>
+
+<h2 id="l2-section-3"><span class="section-number">03</span>3. Action values and regret</h2>
+<p>The <strong>action value</strong> \(q_*(a)\) is the expected reward obtained by choosing action \(a\):</p>
+<p><code>q*(a) = E[R_t | A_t = a]</code></p>
+<p>Because the true value is unknown, the agent maintains an estimate, written \(Q_t(a)\). A straightforward estimate is the sample average of rewards received after choosing that action:</p>
+<p><code>Q_t(a) = (sum of rewards observed for a) / (number of times a was selected)</code></p>
+<p>Each new reward can update the estimate. If action \(a\) has been selected \(N_t(a)\) times, an incremental update is:</p>
+<p><code>Q_new(a) = Q_old(a) + [R - Q_old(a)] / N_new(a)</code></p>
+<p>This update moves the estimate toward the latest reward without storing the full reward history.</p>
+<h3>Regret</h3>
+<p><strong>Regret</strong> measures the reward lost by not always choosing the best action in hindsight. If the best true action value is \(q_*(a^*)\), the expected one-step regret from choosing \(A_t\) is:</p>
+<p><code>q*(a*) - q*(A_t)</code></p>
+<p>Cumulative regret adds this loss over decisions. An exploration strategy may accept some short-term regret to discover a better action and reduce regret over the longer run.</p>
+
+<h2 id="l2-section-4"><span class="section-number">04</span>4. Greedy and ε-greedy methods</h2>
+<h3>Greedy action selection</h3>
+<p>A <strong>greedy</strong> agent always chooses an action with the largest current estimate:</p>
+<p><code>A_t = argmax_a Q_t(a)</code></p>
+<p>This exploits current knowledge, but it may never discover that another action is better. If early rewards make a poor action look unusually good, the agent can repeatedly select it and stop gathering evidence about alternatives.</p>
+<h3>ε-greedy action selection</h3>
+<p>The <strong>ε-greedy</strong> strategy adds occasional random exploration:</p>
+<ul>
+<li>With probability \(1-\varepsilon\), choose a greedy action.</li>
+<li>With probability \(\varepsilon\), choose an action at random.</li>
+</ul>
+<p>Here, \(\varepsilon\) controls the exploration rate. If \(\varepsilon=0\), the strategy is greedy. A larger \(\varepsilon\) means more exploration.</p>
+<table>
+<thead><tr><th>Strategy</th><th>What it does</th><th>Main limitation</th></tr></thead>
+<tbody>
+<tr><td>Greedy</td><td>Always picks the current highest estimate</td><td>Can miss better actions because it does not explore deliberately</td></tr>
+<tr><td>ε-greedy</td><td>Usually exploits, sometimes explores randomly</td><td>Random exploration may spend trials on clearly poor actions</td></tr>
+</tbody>
+</table>
+<p>ε-greedy is simple and often effective as a baseline. It does not, however, use the degree of uncertainty about each action to decide which alternative is most informative.</p>
+
+<h2 id="l2-section-5"><span class="section-number">05</span>5. Policy gradients and softmax</h2>
+<p>Instead of estimating action values and selecting the largest one, an agent can learn a <strong>stochastic policy</strong> directly. A policy assigns a probability to each action.</p>
+<h3>Softmax action preferences</h3>
+<p>One way to construct a policy is to maintain a preference \(H_t(a)\) for each action and convert preferences into probabilities with softmax:</p>
+<p><code>π_t(a) = exp(H_t(a)) / sum_b exp(H_t(b))</code></p>
+<p>Higher preferences produce higher probabilities, but actions with lower preferences can still be selected. This gives a graded form of exploration rather than the uniform random exploration used by ε-greedy.</p>
+<p>Preferences are not themselves reward estimates. They are parameters that determine the policy’s action probabilities.</p>
+<h3>Policy-gradient idea</h3>
+<p>A policy-gradient method adjusts policy parameters in a direction expected to increase reward. It can learn how likely actions should be, rather than first learning a separate value estimate for every action and then taking an argmax.</p>
+
+<h2 id="l2-section-6"><span class="section-number">06</span>6. REINFORCE and the log-likelihood trick</h2>
+<p><strong>REINFORCE</strong> is a policy-gradient approach. Its central idea is to increase the probability of actions associated with good outcomes and decrease the probability of actions associated with poor outcomes.</p>
+<h3>Why the log probability appears</h3>
+<p>Directly differentiating a sampled action is difficult because the action is discrete. The log-likelihood identity rewrites a probability gradient in a useful form:</p>
+<p><code>∇θ πθ(a) = πθ(a) ∇θ log πθ(a)</code></p>
+<p>Equivalently, dividing by the policy probability gives:</p>
+<p><code>∇θ log πθ(a) = ∇θ πθ(a) / πθ(a)</code></p>
+<p>This lets the gradient of an expected reward be expressed using sampled actions and the gradient of their log probabilities. A typical REINFORCE update has the form:</p>
+<p><code>θ ← θ + α G_t ∇θ log πθ(A_t)</code></p>
+<p>Here, \(\alpha\) is a step size and \(G_t\) is the sampled return or reward signal associated with the action. The update increases the log probability of actions followed by high returns. In a one-step bandit, the reward itself plays the role of the return.</p>
+<blockquote><strong>Interpretation:</strong> if an action produces a better-than-expected outcome, move the policy toward choosing it more often; if it produces a poor outcome, move away from it.</blockquote>
+
+<h2 id="l2-section-7"><span class="section-number">07</span>7. Optimism under uncertainty</h2>
+<p>Another approach to exploration is to make uncertain actions look temporarily attractive. This is called <strong>optimism in the face of uncertainty</strong>.</p>
+<p>Rather than choosing only by the current average reward estimate, the agent adds an exploration bonus. Actions that have been tried rarely, and therefore remain uncertain, can receive a larger bonus.</p>
+<p>This creates a useful behavior: an action may be selected not because its estimated reward is already high, but because there is a meaningful chance that its true reward is high and the agent has not tested it enough.</p>
+
+<h2 id="l2-section-8"><span class="section-number">08</span>8. Upper Confidence Bound (UCB)</h2>
+<p><strong>Upper Confidence Bound (UCB)</strong> formalizes optimism by adding a confidence-based bonus to the estimated action value. A common bandit UCB rule is:</p>
+<p><code>A_t = argmax_a [ Q_t(a) + c √(ln t / N_t(a)) ]</code></p>
+<ul>
+<li>\(Q_t(a)\): estimated mean reward for action \(a\).</li>
+<li>\(N_t(a)\): number of times action \(a\) has been selected.</li>
+<li>\(t\): current decision count.</li>
+<li>\(c\): parameter controlling the strength of exploration.</li>
+<li>The square-root term is the exploration bonus.</li>
+</ul>
+<p>When an action has been selected only a few times, its bonus is large. As it is sampled more often, the bonus shrinks. The logarithm of time allows the exploration bonus to respond to the overall growth in the number of decisions.</p>
+<p>UCB therefore balances estimated reward and uncertainty in a targeted way: it explores actions with high plausible upside rather than choosing random actions indiscriminately.</p>
+
+<h2 id="l2-section-9"><span class="section-number">09</span>9. Hoeffding’s inequality and the UCB idea</h2>
+<p><strong>Hoeffding’s inequality</strong> is a concentration result: for bounded independent samples, it gives a bound on how far a sample average is likely to be from its true expected value.</p>
+<p>In bandit reasoning, this supports the idea of an upper confidence estimate: a sample mean plus a term that accounts for how many observations have been collected. More observations generally make the uncertainty interval narrower.</p>
+<p>The UCB strategy uses the upper side of such an estimate as an optimistic score. It selects the action with the highest upper confidence bound, giving preference to actions whose mean may be high or whose estimate is still uncertain.</p>
+<blockquote><strong>Big picture:</strong> the confidence bonus is not an arbitrary reward bonus. It represents uncertainty in the estimate, with the number of samples controlling how much uncertainty remains.</blockquote>
+
+<h2 id="l2-section-10"><span class="section-number">10</span>10. Bayesian bandits</h2>
+<p>A Bayesian bandit represents uncertainty about an action’s reward parameter with a <strong>probability distribution</strong>, called a posterior distribution. Before observing rewards, the agent has a prior belief. Each observed reward updates that belief using Bayes’ rule.</p>
+<p>This differs from keeping only a point estimate such as a sample mean. A posterior distribution can express both a central estimate and how uncertain the agent remains.</p>
+<h3>Prior, likelihood and posterior</h3>
+<ul>
+<li><strong>Prior:</strong> belief about an action’s reward parameter before new data.</li>
+<li><strong>Likelihood:</strong> how probable the observed data are under a candidate parameter value.</li>
+<li><strong>Posterior:</strong> updated belief after combining prior and observed data.</li>
+</ul>
+<p>As evidence accumulates, the posterior typically becomes more concentrated. The agent can use this uncertainty directly when deciding which action to try next.</p>
+
+<h2 id="l2-section-11"><span class="section-number">11</span>11. Thompson sampling</h2>
+<p><strong>Thompson sampling</strong> is a Bayesian exploration strategy. At each decision, the agent samples a plausible reward parameter (or action value) from each action’s posterior belief and chooses the action with the highest sampled value.</p>
+<ol>
+<li>Maintain a posterior distribution for each action.</li>
+<li>Sample one plausible value for every action from its posterior.</li>
+<li>Choose the action with the largest sampled value.</li>
+<li>Observe its reward and update that action’s posterior.</li>
+<li>Repeat.</li>
+</ol>
+<p>An action with a high posterior mean is often selected. An uncertain action can also be selected because some posterior samples may place its true value high. As uncertainty decreases, the sampling decisions increasingly reflect the accumulated evidence.</p>
+<p>Unlike ε-greedy, Thompson sampling does not explore by selecting a uniformly random action with a fixed probability. Its exploration is shaped by the posterior uncertainty.</p>
+
+<h2 id="l2-section-12"><span class="section-number">12</span>12. Planning to explore</h2>
+<p>Exploration can also be considered as a decision whose value comes from what the agent will learn and how that information may improve later decisions. This is sometimes described as <strong>planning to explore</strong> or <strong>value of information</strong>.</p>
+<p>An exploratory action may have a low immediate reward but reveal information that changes future choices. Its total value therefore includes both immediate reward and the possible benefit of better-informed decisions later.</p>
+<p>This perspective connects bandit exploration to the broader sequential RL setting from Lecture 1, where actions influence not only the next reward but also future states and opportunities.</p>
+
+<h2 id="l2-section-13"><span class="section-number">13</span>13. Comparing the main strategies</h2>
+<table>
+<thead><tr><th>Method</th><th>How it chooses</th><th>How it explores</th><th>Key idea</th></tr></thead>
+<tbody>
+<tr><td>Greedy</td><td>Highest estimated action value</td><td>No deliberate exploration</td><td>Exploit current estimates</td></tr>
+<tr><td>ε-greedy</td><td>Greedy most of the time</td><td>Random action with probability ε</td><td>Simple exploration baseline</td></tr>
+<tr><td>Softmax policy</td><td>Sample from preference-based probabilities</td><td>Lower-preference actions retain some probability</td><td>Learn action probabilities directly</td></tr>
+<tr><td>REINFORCE</td><td>Sample from a parameterized policy</td><td>Update policy using sampled rewards/returns</td><td>Increase probability of actions associated with better outcomes</td></tr>
+<tr><td>UCB</td><td>Highest estimate plus confidence bonus</td><td>Bonus favors under-sampled actions</td><td>Optimism under uncertainty</td></tr>
+<tr><td>Thompson sampling</td><td>Highest sampled value from posterior beliefs</td><td>Posterior uncertainty shapes action selection</td><td>Bayesian sampling</td></tr>
+</tbody>
+</table>
+<p>No single strategy is best in every setting. The appropriate choice depends on assumptions about rewards, the need for adaptation, computational constraints and how uncertainty is represented.</p>
+
+<h2 id="l2-section-14"><span class="section-number">14</span>14. Revision sheet and questions</h2>
+<h3>Key definitions</h3>
+<ul>
+<li><strong>Exploration:</strong> trying actions to gain information about their rewards.</li>
+<li><strong>Exploitation:</strong> choosing the action currently believed to give the highest reward.</li>
+<li><strong>Bandit:</strong> a repeated choice among actions with unknown reward distributions.</li>
+<li><strong>Action value:</strong> expected reward associated with an action.</li>
+<li><strong>Regret:</strong> reward lost relative to always choosing the best action.</li>
+<li><strong>UCB:</strong> action-value estimate plus a confidence-based exploration bonus.</li>
+<li><strong>Thompson sampling:</strong> choose using values sampled from Bayesian posterior beliefs.</li>
+</ul>
+<h3>Formula recap</h3>
+<table>
+<thead><tr><th>Concept</th><th>Expression</th></tr></thead>
+<tbody>
+<tr><td>True action value</td><td><code>q*(a) = E[R | A = a]</code></td></tr>
+<tr><td>Sample-average estimate</td><td><code>Q(a) = total observed reward for a / number of times a was chosen</code></td></tr>
+<tr><td>Incremental estimate update</td><td><code>Q_new = Q_old + (R − Q_old) / N_new</code></td></tr>
+<tr><td>ε-greedy</td><td><code>greedy with probability 1−ε; random action with probability ε</code></td></tr>
+<tr><td>Softmax</td><td><code>π(a) = exp(H(a)) / Σ_b exp(H(b))</code></td></tr>
+<tr><td>UCB</td><td><code>Q(a) + c √(ln t / N(a))</code></td></tr>
+<tr><td>REINFORCE-style update</td><td><code>θ ← θ + α G ∇θ log πθ(A)</code></td></tr>
+</tbody>
+</table>
+<h3>Check your understanding</h3>
+<ol>
+<li>Why can a purely greedy bandit agent fail even when another action is better?</li>
+<li>What is the difference between exploration and exploitation?</li>
+<li>How does ε change the behavior of an ε-greedy agent?</li>
+<li>Why does the UCB exploration bonus shrink as an action is selected more often?</li>
+<li>What does a Bayesian posterior represent in a bandit problem?</li>
+<li>How does Thompson sampling use posterior uncertainty?</li>
+<li>Why might an action with low immediate reward still be worth exploring?</li>
+<li>Explain the difference between choosing randomly and choosing according to a softmax policy.</li>
+</ol>
+<div class="intro-note"><strong>Final takeaway.</strong> Exploration is not simply “trying random things.” It is the deliberate management of uncertainty so that an agent can make better decisions over time. Greedy and ε-greedy methods provide simple baselines; policy-gradient, UCB and Bayesian methods offer different ways to shape exploration.</div>
+</section>
+
+
+<section id="lecture-3" aria-label="Lecture 3: Markov Decision Processes and Dynamic Programming">
+<div class="intro-note">
+<strong>Lecture 3 at a glance.</strong> This lecture formalizes sequential reinforcement learning with Markov Decision Processes (MDPs), defines the objectives and value functions, develops the Bellman equations, and introduces model-based Dynamic Programming algorithms for prediction and control.
+</div>
+<h1>Lecture 3: Markov Decision Processes &amp; Dynamic Programming</h1>
+<p>Lectures 1 and 2 introduced the agent–environment interaction and the exploration–exploitation problem in bandits. This lecture generalizes that setting to sequential environments: the agent observes a state, chooses an action, receives a reward, and moves to a new state. Because today's action can affect future states and rewards, the agent must reason about long-term consequences.</p>
+<p>The lecture assumes a fully observable environment for its main exposition and focuses mostly on finite, discrete state and action spaces. It introduces methods that assume the agent has access to the true model of the environment.</p>
+
+<h2 id="l3-section-1"><span class="section-number">01</span>1. From bandits to sequential reinforcement learning</h2>
+<p>A bandit can be viewed as a very small RL problem with one state and multiple actions. A full MDP adds a sequence of states: actions influence both the immediate reward and which state the agent encounters next.</p>
+<ul>
+<li>The <strong>agent</strong> chooses actions according to a policy.</li>
+<li>The <strong>environment</strong> responds with a reward and a next state.</li>
+<li>The process repeats over time, so decisions can have long-lasting consequences.</li>
+<li>The agent may use a policy, a value function, and/or a model of the world to decide what to do.</li>
+</ul>
+<p>The lecture's first family of solution methods assumes the true environment model is known. These are <strong>Dynamic Programming (DP)</strong> methods. Later sample-based approaches can relax the requirement for a known model.</p>
+
+<h2 id="l3-section-2"><span class="section-number">02</span>2. Markov Decision Processes (MDPs)</h2>
+<p>A <strong>Markov Decision Process</strong> formalizes the agent–environment interaction. In the joint-transition formulation, an MDP is described by the tuple:</p>
+<div class="formula-card"><strong>MDP:</strong> <code>(S, A, P, γ)</code><p>where the transition kernel P specifies the joint distribution of next state and reward given the current state and action.</p></div>
+<ul>
+<li><strong>S:</strong> set of possible states.</li>
+<li><strong>A:</strong> set of available actions.</li>
+<li><strong>P(s′, r | s, a):</strong> probability of reaching next state s′ and receiving reward r after taking action a in state s.</li>
+<li><strong>γ:</strong> discount factor, between 0 and 1, controlling the relative weight of future rewards.</li>
+</ul>
+<p>The transition kernel is also called the <strong>dynamics</strong> of the problem. It tells us what can happen after an action and how likely each outcome is.</p>
+<h3>Equivalent marginal formulation</h3>
+<p>The lecture also presents an equivalent representation that separates state transitions and expected rewards:</p>
+<ul>
+<li><code>P(s′ | s,a) = Σ_r P(s′,r | s,a)</code> — probability of the next state, marginalizing over rewards.</li>
+<li><code>r(s,a) = E[R | s,a]</code> — expected immediate reward given the current state and action.</li>
+</ul>
+<p>These formulations are equivalent; they simply package the transition and reward information differently. In the joint form, reward may depend on the resulting next state. In the marginal form, the reward supplied is the expected reward conditional on the current state and action.</p>
+
+<h2 id="l3-section-3"><span class="section-number">03</span>3. The Markov property</h2>
+<p>The defining idea behind an MDP is the <strong>Markov property</strong>: once the current state is known, the history before that state is not needed for predicting the future.</p>
+<div class="formula-card"><code>P(Sₜ₊₁, Rₜ₊₁ | Sₜ, Aₜ, history) = P(Sₜ₊₁, Rₜ₊₁ | Sₜ, Aₜ)</code></div>
+<p>In words, the current state summarizes all information from the past that is relevant to predicting the next state and reward. The state is therefore a sufficient statistic of the history for this prediction problem.</p>
+<p>It does <strong>not</strong> mean that the future is independent of the action. The action is chosen at the current time and influences the distribution of the next state and reward.</p>
+<h3>How to check a Markov statement</h3>
+<ul>
+<li>Past history can be removed from the conditioning once the current state and action are known.</li>
+<li>Future quantities are predicted from the current state and action.</li>
+<li>Information about an action taken now cannot be discarded when predicting what happens next.</li>
+</ul>
+<p>The lecture notes that even partially observable problems can sometimes be represented as MDPs by using an appropriate state that contains the relevant history or belief information.</p>
+
+<h2 id="l3-section-4"><span class="section-number">04</span>4. Example: the cleaning robot</h2>
+<p>The lecture uses a cleaning robot example to make an MDP concrete. The robot collects soda cans and has two battery states:</p>
+<ul>
+<li><strong>High battery</strong></li>
+<li><strong>Low battery</strong></li>
+</ul>
+<p>It has three actions:</p>
+<ul>
+<li><strong>Wait:</strong> remain available for someone to put a can into the bin.</li>
+<li><strong>Search:</strong> actively look for cans. This has a higher expected reward than waiting, but can consume battery.</li>
+<li><strong>Recharge:</strong> restore the battery from low to high.</li>
+</ul>
+<p>Searching from the high-battery state can lead back to high battery with probability α, or to low battery with probability 1−α. The low-battery search transition has an additional possibility of a penalty (−3), occurring with probability 1−β; with probability β the robot receives the search reward.</p>
+<p>This example illustrates why the joint transition kernel can be useful: the reward may depend on the next state. If using the marginal formulation, the expected reward must be computed by averaging over the possible outcomes.</p>
+<p>An MDP can also be drawn as a directed graph: states are nodes, and arrows represent possible transitions, annotated with their probabilities and associated rewards.</p>
+
+<h2 id="l3-section-5"><span class="section-number">05</span>5. Returns and discounting</h2>
+<p>The <strong>return</strong> is the total reward accumulated from a point in time onward. The lecture introduces three common objectives:</p>
+<table>
+<thead><tr><th>Return type</th><th>Definition / idea</th><th>Typical use</th></tr></thead>
+<tbody>
+<tr><td>Undiscounted</td><td>Sum of future rewards without discounting</td><td>Finite-horizon episodic tasks</td></tr>
+<tr><td>Discounted</td><td>Future rewards weighted by powers of γ</td><td>Finite- and infinite-horizon tasks</td></tr>
+<tr><td>Average reward</td><td>Long-run average reward per time step</td><td>Continuing infinite-horizon tasks</td></tr>
+</tbody>
+</table>
+<p>The lecture focuses on discounted return:</p>
+<div class="formula-card"><code>Gₜ = Rₜ₊₁ + γRₜ₊₂ + γ²Rₜ₊₃ + …</code><p>For an infinite horizon: <code>Gₜ = Σₖ₌₀∞ γᵏ Rₜ₊ₖ₊₁</code></p></div>
+<p>The discount factor γ is between 0 and 1:</p>
+<ul>
+<li><strong>γ close to 0:</strong> immediate rewards dominate. The objective is myopic.</li>
+<li><strong>γ close to 1:</strong> delayed rewards retain more weight. The objective is more far-sighted.</li>
+<li><strong>γ = 0:</strong> only the immediate reward contributes.</li>
+<li><strong>γ = 1:</strong> discounted return becomes undiscounted return, when that sum is well-defined.</li>
+</ul>
+<p>Discounting can reflect a real preference for earlier rewards, uncertainty about reaching the distant future, or mathematical convenience. In continuing cyclic problems, undiscounted infinite sums may be unbounded; discounting can help keep the objective well behaved.</p>
+
+<h2 id="l3-section-6"><span class="section-number">06</span>6. Policies and value functions</h2>
+<p>A <strong>policy</strong> specifies how the agent behaves. A stochastic policy assigns a probability to each action in each state:</p>
+<div class="formula-card"><code>π(a | s) = P(Aₜ = a | Sₜ = s)</code></div>
+<p>A deterministic policy selects one action for each state, often written <code>a = π(s)</code>.</p>
+<h3>State-value function</h3>
+<p>The value of a state under policy π is the expected return starting from that state and then following π:</p>
+<div class="formula-card"><code>Vπ(s) = Eπ[Gₜ | Sₜ = s]</code></div>
+<h3>Action-value function</h3>
+<p>The action value is the expected return when starting in state s, taking action a first, and following π thereafter:</p>
+<div class="formula-card"><code>Qπ(s,a) = Eπ[Gₜ | Sₜ = s, Aₜ = a]</code></div>
+<p>The two are connected by averaging action values under the policy:</p>
+<div class="formula-card"><code>Vπ(s) = Σₐ π(a|s) Qπ(s,a)</code></div>
+<p>So Vπ tells us how good it is to be in a state when following π, while Qπ tells us how good it is to take a particular action there and then continue with π.</p>
+
+<h2 id="l3-section-7"><span class="section-number">07</span>7. Optimal values and policies</h2>
+<p>The <strong>optimal state-value function</strong> is the best value achievable from each state over all possible policies. The <strong>optimal action-value function</strong> is defined similarly, after taking a specified first action:</p>
+<div class="formula-card"><code>V*(s) = maxπ Vπ(s)</code><p><code>Q*(s,a) = maxπ Qπ(s,a)</code></p></div>
+<p>An optimal policy π* is at least as good as every other policy in every state. The lecture describes this as policy dominance: π dominates π′ if <code>Vπ(s) ≥ Vπ′(s)</code> for every state s.</p>
+<ul>
+<li>An optimal policy exists for the MDP setting considered in the lecture.</li>
+<li>All optimal policies share the same optimal value function and optimal action-value function.</li>
+<li>There is always a deterministic optimal policy, although other optimal policies may be stochastic.</li>
+<li>If Q* is known, an optimal policy is obtained by acting greedily with respect to Q*.</li>
+</ul>
+<div class="formula-card"><code>π*(s) ∈ argmaxₐ Q*(s,a)</code></div>
+
+<h2 id="l3-section-8"><span class="section-number">08</span>8. Bellman expectation equations</h2>
+<p>The <strong>Bellman expectation equations</strong> express the recursive structure of value functions under a fixed policy. The return can be split into the immediate reward plus the discounted return from the next state.</p>
+<h3>State-value form</h3>
+<div class="formula-card"><code>Vπ(s) = Σₐ π(a|s) Σₛ′,ᵣ P(s′,r|s,a) [r + γVπ(s′)]</code></div>
+<p>First average over the action chosen by policy π, then over the possible next-state/reward outcomes.</p>
+<h3>Action-value form</h3>
+<div class="formula-card"><code>Qπ(s,a) = Σₛ′,ᵣ P(s′,r|s,a) [r + γ Σₐ′ π(a′|s′)Qπ(s′,a′)]</code></div>
+<p>Here the first action is fixed as a; after the transition, the next action is selected according to π. The value at the next state is the policy-weighted average of its action values.</p>
+<p>These equations are recursive because the value at the current time is expressed using values at the next time step.</p>
+
+<h2 id="l3-section-9"><span class="section-number">09</span>9. Bellman optimality equations</h2>
+<p>The <strong>Bellman optimality equations</strong> describe the optimal value functions. The key difference from the expectation equations is that the policy average over the next action is replaced by a maximum: after reaching the next state, the agent chooses the best available action.</p>
+<h3>Optimal state-value form</h3>
+<div class="formula-card"><code>V*(s) = maxₐ Σₛ′,ᵣ P(s′,r|s,a) [r + γV*(s′)]</code></div>
+<h3>Optimal action-value form</h3>
+<div class="formula-card"><code>Q*(s,a) = Σₛ′,ᵣ P(s′,r|s,a) [r + γ maxₐ′ Q*(s′,a′)]</code></div>
+<p>The maximization makes the optimality equations nonlinear in general. This is why the direct linear-system solution used for policy evaluation does not transfer straightforwardly to control.</p>
+
+<h2 id="l3-section-10"><span class="section-number">10</span>10. Prediction vs. control</h2>
+<p>The lecture distinguishes two fundamental RL problem classes:</p>
+<table>
+<thead><tr><th>Problem</th><th>Given</th><th>Goal</th><th>Value target</th></tr></thead>
+<tbody>
+<tr><td><strong>Prediction / policy evaluation</strong></td><td>A fixed policy π</td><td>Determine how well that policy performs</td><td>Vπ or Qπ</td></tr>
+<tr><td><strong>Control</strong></td><td>An MDP, with no fixed policy to evaluate</td><td>Find optimal behavior</td><td>V* or Q*, then π*</td></tr>
+</tbody>
+</table>
+<p>Prediction asks, “How good is this behavior?” Control asks, “What is the best behavior?” Control is more demanding because the policy itself must be improved.</p>
+<p>The lecture illustrates policy evaluation with a three-state chain and two actions. It considers a policy that always chooses one action and a uniformly random policy, with discount factors 0.9 and 0. This example is intended to practice reading an MDP diagram, applying the reward specification, and computing state values.</p>
+
+<h2 id="l3-section-11"><span class="section-number">11</span>11. Matrix solution to policy evaluation</h2>
+<p>For a finite MDP and fixed policy π, the Bellman expectation equations for all states can be collected into a linear system:</p>
+<div class="formula-card"><code>vπ = rπ + γPπvπ</code><p>Rearranging gives: <code>vπ = (I − γPπ)⁻¹ rπ</code></p></div>
+<ul>
+<li><strong>vπ:</strong> vector containing the value of every state under π.</li>
+<li><strong>rπ:</strong> expected immediate reward vector under π.</li>
+<li><strong>Pπ:</strong> state-transition matrix when actions are selected according to π.</li>
+<li><strong>I:</strong> identity matrix.</li>
+</ul>
+<p>The transition matrix averages the environment dynamics over the policy's action probabilities. The reward vector similarly averages immediate rewards under the policy.</p>
+<p>This gives an exact solution when the required inverse exists, but matrix inversion is computationally expensive for large state spaces. The lecture notes cubic complexity for a standard dense solution, making it practical mainly for small problems. Iterative evaluation and other methods are used for larger state spaces.</p>
+
+<h2 id="l3-section-12"><span class="section-number">12</span>12. Dynamic Programming</h2>
+<p><strong>Dynamic Programming</strong> is a family of algorithms for computing value functions and optimal policies when the true MDP model is known. The lecture emphasizes a recurring pattern:</p>
+<ol>
+<li><strong>Policy evaluation:</strong> estimate the value of the current policy.</li>
+<li><strong>Policy improvement:</strong> use those values to construct a better policy.</li>
+</ol>
+<p>Repeating these steps leads to policy iteration. A different approach, value iteration, applies the Bellman optimality update directly.</p>
+<p>The DP algorithms introduced here use the full model: they average over the possible successor states and rewards rather than relying on a single sampled transition.</p>
+
+<h2 id="l3-section-13"><span class="section-number">13</span>13. Iterative policy evaluation</h2>
+<p>Instead of solving the matrix equation directly, policy evaluation can be performed by repeatedly applying the Bellman expectation update. Start with an initial estimate for every state, such as zero, and update all states using the previous iteration's values:</p>
+<div class="formula-card"><code>Vₖ₊₁(s) = Σₐ π(a|s) Σₛ′,ᵣ P(s′,r|s,a)[r + γVₖ(s′)]</code></div>
+<p>Continue until the values change by less than a chosen tolerance (or, in the exact mathematical description, until the update no longer changes the values). Under the appropriate conditions discussed in the course, including γ less than 1, the procedure converges to Vπ.</p>
+<h3>Grid-world illustration</h3>
+<p>The lecture uses a grid world with terminal states, a reward of −1 for each transition, discount factor 1, and a uniformly random policy over the available directions. The values are initialized to zero.</p>
+<ul>
+<li>At the first update, each nonterminal state's value becomes −1 because the next-state estimates are all initially zero.</li>
+<li>At later updates, each state's value reflects the −1 immediate reward plus the average value of the states reachable under the random policy.</li>
+<li>Repeated updates propagate the cost of taking steps through the grid until the values converge.</li>
+</ul>
+<p>The converged values evaluate the random policy. Acting greedily with respect to these values can then produce a much better policy, which motivates policy improvement.</p>
+
+<h2 id="l3-section-14"><span class="section-number">14</span>14. Policy improvement and policy iteration</h2>
+<h3>Greedy policy improvement</h3>
+<p>Given the value function for a policy π, define a new policy that chooses an action maximizing the one-step lookahead value:</p>
+<div class="formula-card"><code>πnew(s) ∈ argmaxₐ Σₛ′,ᵣ P(s′,r|s,a)[r + γVπ(s′)]</code></div>
+<p>The policy improvement principle says that this greedy policy is at least as good as the original policy in every state. Intuitively, if a different action has a better one-step lookahead according to the evaluated values, taking that action offers an opportunity to improve; if the maximizing action is the same, the policy need not change.</p>
+<h3>Policy iteration algorithm</h3>
+<ol>
+<li>Initialize a policy π.</li>
+<li>Evaluate it to obtain Vπ (or Qπ).</li>
+<li>Improve the policy, typically by acting greedily with respect to the evaluated values.</li>
+<li>If the policy changes, evaluate the new policy and repeat.</li>
+<li>Stop when the greedy improvement step returns the same policy. The stable policy is optimal under the conditions considered.</li>
+</ol>
+<p>Policy iteration alternates between evaluation and improvement. The lecture illustrates it with a car-rental problem involving two locations, limited car movement, movement costs, rental rewards, and stochastic requests and returns modeled with Poisson distributions. Although the dynamics are too involved to solve by inspection, policy iteration reaches a stable policy after a small number of iterations in the presented example.</p>
+<h3>Do we need exact policy evaluation every time?</h3>
+<p>Not necessarily. If the value estimate is being used to improve the policy, it may be wasteful to evaluate the current policy all the way to convergence before improving it. The lecture uses this observation to motivate value iteration.</p>
+
+<h2 id="l3-section-15"><span class="section-number">15</span>15. Value iteration</h2>
+<p><strong>Value iteration</strong> combines policy evaluation and improvement into a single update. It applies the Bellman optimality equation repeatedly:</p>
+<div class="formula-card"><code>Vₖ₊₁(s) = maxₐ Σₛ′,ᵣ P(s′,r|s,a)[r + γVₖ(s′)]</code></div>
+<p>Instead of averaging over the actions of a fixed policy, each update takes the best action according to the current lookahead values. This can be understood as an extreme form of truncated policy evaluation: perform one backup and then immediately make a greedy improvement.</p>
+<ol>
+<li>Initialize V₀(s), often to zero.</li>
+<li>For each state, update using the maximum over actions and the full model's expected next-step return.</li>
+<li>Repeat until the values stabilize within a tolerance.</li>
+<li>Extract a policy by acting greedily with respect to the converged values.</li>
+</ol>
+<p>The lecture's grid example uses a −1 reward per transition and a terminal state. The algorithm propagates values backward from the terminal state, favoring actions that reach termination in fewer steps. Once the values satisfy the Bellman optimality equation, greedy action selection yields an optimal policy.</p>
+
+<h2 id="l3-section-16"><span class="section-number">16</span>16. Asynchronous Dynamic Programming and sample backups</h2>
+<p>The synchronous DP methods described so far update every state at every iteration, often maintaining separate old and new value tables. This can be costly for large state spaces.</p>
+<h3>Asynchronous updates</h3>
+<p><strong>Asynchronous Dynamic Programming</strong> updates states individually, in a chosen order, rather than updating all states in lockstep. The lecture describes several examples:</p>
+<ul>
+<li><strong>In-place value iteration:</strong> store one value table and immediately reuse values that have already been updated, rather than keeping separate copies for each iteration.</li>
+<li><strong>Prioritized sweeping:</strong> select states according to a priority measure, such as the magnitude of their Bellman error. States with larger errors are updated first. This can use a priority queue and information about predecessor states.</li>
+<li><strong>Real-time Dynamic Programming:</strong> focus computation on states relevant to the agent's current situation and likely near-future decisions.</li>
+</ul>
+<p>The lecture states that asynchronous updates can converge when states continue to be visited with nonzero probability under the relevant conditions.</p>
+<h3>Full backups vs. sample backups</h3>
+<p>Standard DP uses <strong>full backups</strong>: it considers all possible successor states (and relevant actions) using the model. For very large state or action spaces, even one full backup can be expensive.</p>
+<p>A <strong>sample backup</strong> instead uses an observed transition such as <code>(s, a, r, s′)</code> to update an estimate. This avoids requiring the full transition model and leads toward model-free, sample-based methods. The lecture previews Monte Carlo and Temporal-Difference approaches, including Q-learning and SARSA, as topics to be developed in subsequent lectures.</p>
+
+<h2 id="l3-section-17"><span class="section-number">17</span>17. Revision sheet and questions</h2>
+<h3>Essential concepts</h3>
+<ul>
+<li><strong>MDP:</strong> formal model of sequential decisions using states, actions, transition dynamics and discounting.</li>
+<li><strong>Markov property:</strong> the current state contains all past information relevant to predicting the future.</li>
+<li><strong>Return:</strong> accumulated future reward, often discounted by γ.</li>
+<li><strong>Policy:</strong> a mapping from states to action probabilities or actions.</li>
+<li><strong>Vπ and Qπ:</strong> expected returns under a specified policy.</li>
+<li><strong>V* and Q*:</strong> best achievable values over policies.</li>
+<li><strong>Bellman expectation equations:</strong> recursive value equations for a fixed policy.</li>
+<li><strong>Bellman optimality equations:</strong> recursive equations using maximization over actions.</li>
+<li><strong>Policy evaluation:</strong> compute the value of a fixed policy.</li>
+<li><strong>Policy improvement:</strong> use value estimates to produce a better policy.</li>
+<li><strong>Policy iteration:</strong> alternate evaluation and improvement.</li>
+<li><strong>Value iteration:</strong> repeatedly apply Bellman optimality backups.</li>
+<li><strong>Asynchronous DP:</strong> update selected states without requiring full synchronized sweeps.</li>
+</ul>
+<h3>Algorithm comparison</h3>
+<table>
+<thead><tr><th>Method</th><th>Target</th><th>Update principle</th><th>Model required?</th></tr></thead>
+<tbody>
+<tr><td>Matrix policy evaluation</td><td>Vπ</td><td>Solve a linear system</td><td>Yes</td></tr>
+<tr><td>Iterative policy evaluation</td><td>Vπ</td><td>Bellman expectation update</td><td>Yes</td></tr>
+<tr><td>Policy iteration</td><td>Optimal policy</td><td>Evaluate, then improve repeatedly</td><td>Yes</td></tr>
+<tr><td>Value iteration</td><td>V* and optimal policy</td><td>Bellman optimality update</td><td>Yes</td></tr>
+<tr><td>Sample backups</td><td>Approximate value updates</td><td>Use sampled transitions</td><td>No full model required</td></tr>
+</tbody>
+</table>
+<h3>Formula recap</h3>
+<table>
+<thead><tr><th>Topic</th><th>Formula</th></tr></thead>
+<tbody>
+<tr><td>Discounted return</td><td><code>Gₜ = Σₖ₌₀∞ γᵏRₜ₊ₖ₊₁</code></td></tr>
+<tr><td>Policy state value</td><td><code>Vπ(s) = Eπ[Gₜ | Sₜ=s]</code></td></tr>
+<tr><td>Policy action value</td><td><code>Qπ(s,a) = Eπ[Gₜ | Sₜ=s,Aₜ=a]</code></td></tr>
+<tr><td>V–Q relationship</td><td><code>Vπ(s) = Σₐ π(a|s)Qπ(s,a)</code></td></tr>
+<tr><td>Bellman expectation</td><td><code>Vπ(s) = Σₐ π(a|s)Σₛ′,ᵣP(s′,r|s,a)[r+γVπ(s′)]</code></td></tr>
+<tr><td>Bellman optimality</td><td><code>V*(s) = maxₐΣₛ′,ᵣP(s′,r|s,a)[r+γV*(s′)]</code></td></tr>
+<tr><td>Matrix evaluation</td><td><code>vπ = (I−γPπ)⁻¹rπ</code></td></tr>
+<tr><td>Policy evaluation update</td><td><code>Vₖ₊₁(s) = Eπ[Rₜ₊₁+γVₖ(Sₜ₊₁) | Sₜ=s]</code></td></tr>
+<tr><td>Value iteration</td><td><code>Vₖ₊₁(s) = maxₐ E[Rₜ₊₁+γVₖ(Sₜ₊₁) | s,a]</code></td></tr>
+</tbody>
+</table>
+<h3>Test yourself</h3>
+<ol>
+<li>What information is included in an MDP's joint transition kernel?</li>
+<li>Explain the Markov property in your own words. Why does it not allow us to ignore the current action?</li>
+<li>How do the objectives differ for undiscounted, discounted and average reward?</li>
+<li>What is the difference between Vπ(s) and Qπ(s,a)?</li>
+<li>Why can a greedy policy with respect to Q* be optimal?</li>
+<li>What changes when moving from Bellman expectation equations to Bellman optimality equations?</li>
+<li>What is the difference between policy evaluation and control?</li>
+<li>Why is matrix policy evaluation not a direct solution to the control problem?</li>
+<li>Describe the two alternating steps in policy iteration.</li>
+<li>How does value iteration combine evaluation and improvement?</li>
+<li>What is the difference between a full backup and a sample backup?</li>
+<li>Why might asynchronous updates be preferable in a large state space?</li>
+</ol>
+<div class="intro-note"><strong>Final takeaway.</strong> MDPs provide the mathematical language for sequential RL. Bellman equations expose the recursive structure of expected returns. Dynamic Programming uses a known model to evaluate policies and find optimal behavior: policy iteration alternates evaluation and improvement, while value iteration applies optimality backups directly. Asynchronous and sample-based updates address the computational cost of full model-based sweeps.</div>
+</section>
+
+</main>
+</div>
+<div class="footer">Combined study guide for Lectures 1, 2 and 3. Earlier lecture material is preserved; Lecture 3 is organized into MDP foundations, Bellman equations, Dynamic Programming algorithms, formulas, comparisons, and revision questions.</div>
+<script>
+const search=document.getElementById('toc-search'), links=[...document.querySelectorAll('.toc-link')];
+search.addEventListener('input',()=>{const q=search.value.toLowerCase();links.forEach(a=>a.hidden=!a.textContent.toLowerCase().includes(q));});
+const sections=[...document.querySelectorAll('.article h2')];
+const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));}});},{rootMargin:'-12% 0px -75% 0px'});
+sections.forEach(s=>observer.observe(s));
+window.addEventListener('scroll',()=>{const max=document.documentElement.scrollHeight-innerHeight;document.getElementById('progress').style.width=(max>0?scrollY/max*100:0)+'%';},{passive:true});
+</script>
+
+
+
+
+<script>
+(function(){
+ const main=document.querySelector('.article'); if(!main)return;
+ const bar=document.createElement('div');bar.className='reading-progress';document.body.appendChild(bar);
+ const update=()=>{const max=document.documentElement.scrollHeight-innerHeight;bar.style.width=(max>0?scrollY/max*100:0)+'%'};
+ addEventListener('scroll',update,{passive:true});update();
+ const tools=document.createElement('div');tools.className='learning-tools';
+ tools.innerHTML='<button type="button" id="focusBtn">Focus reading</button><button type="button" id="themeBtn">Dark mode</button><button type="button" id="expandBtn">Collapse all</button><button type="button" id="topBtn">Back to top ↑</button>';
+ const intro=main.querySelector('.intro-note'); if(intro)intro.insertAdjacentElement('afterend',tools);else main.prepend(tools);
+ document.getElementById('focusBtn').onclick=()=>{document.body.classList.toggle('focus-mode');document.getElementById('focusBtn').textContent=document.body.classList.contains('focus-mode')?'Show contents':'Focus reading'};
+ document.getElementById('themeBtn').onclick=()=>{document.body.classList.toggle('dark-study');document.getElementById('themeBtn').textContent=document.body.classList.contains('dark-study')?'Light mode':'Dark mode'};
+ document.getElementById('topBtn').onclick=()=>scrollTo({top:0,behavior:'smooth'});
+ const headings=[...main.querySelectorAll('h2')].filter(h=>!h.closest('.section-wrap'));
+ headings.forEach(h=>{
+   const wrap=document.createElement('section');wrap.className='section-wrap';h.parentNode.insertBefore(wrap,h);
+   const head=document.createElement('div');head.className='section-head';wrap.appendChild(head);head.appendChild(h);
+   const done=document.createElement('button');done.type='button';done.className='section-done';done.textContent='Mark read';head.appendChild(done);
+   const body=document.createElement('div');body.className='section-body';
+   while(wrap.nextSibling && !(wrap.nextSibling.nodeType===1 && wrap.nextSibling.matches('h2')))body.appendChild(wrap.nextSibling);
+   wrap.appendChild(body);h.style.cursor='pointer';h.title='Click to collapse or expand';
+   h.addEventListener('click',()=>wrap.classList.toggle('collapsed'));
+   done.addEventListener('click',()=>{const on=done.classList.toggle('done');done.textContent=on?'✓ Read':'Mark read';stats.querySelector('[data-progress]').textContent=document.querySelectorAll('.section-done.done').length+' / '+headings.length;stats.querySelector('[data-percent]').textContent=Math.round(document.querySelectorAll('.section-done.done').length/Math.max(headings.length,1)*100)+'%'});
+ });
+ const stats=document.createElement('div');stats.className='study-stats';stats.innerHTML='<div class="stat-chip">Sections read: <b data-progress>0 / '+headings.length+'</b></div><div class="stat-chip">Progress: <b data-percent>0%</b></div>';tools.insertAdjacentElement('afterend',stats);
+ let expanded=true;document.getElementById('expandBtn').onclick=()=>{expanded=!expanded;document.querySelectorAll('.section-wrap').forEach(s=>s.classList.toggle('collapsed',!expanded));document.getElementById('expandBtn').textContent=expanded?'Collapse all':'Expand all'};
+})();
+</script>
+
+</body></html>
