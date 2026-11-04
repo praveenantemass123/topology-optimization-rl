@@ -112,6 +112,7 @@ class TopOptEnv(gym.Env):
         self.C0: float = 1.0
         self.C_prev: float = 1.0
         self.t: int = 0
+        self.clip_count: int = 0
         self.load_mask: np.ndarray = np.zeros((self.nely, self.nelx), dtype=np.float32)
         self.support_mask: np.ndarray = np.zeros((self.nely, self.nelx), dtype=np.float32)
 
@@ -273,13 +274,19 @@ class TopOptEnv(gym.Env):
         # 5. C0-Normalized Reward with Safeguards
         actual_vol = float(np.mean(self.x_phys))
         vol_error = abs(actual_vol - self.volfrac)
+        reward_clip = float(self.config.get("reward_clip", 2.0))
         
         if np.isfinite(c) and np.isfinite(self.C_prev) and self.C0 > 0:
             delta_c_norm = -(c - self.C_prev) / self.C0
-            r = float(delta_c_norm - self.config["lam_v"] * vol_error)
-            r = float(np.clip(r, -10.0, 10.0))
+            r_unclipped = float(delta_c_norm - self.config["lam_v"] * vol_error)
+            clipped = bool(abs(r_unclipped) >= reward_clip)
+            if clipped:
+                self.clip_count += 1
+            r = float(np.clip(r_unclipped, -reward_clip, reward_clip))
         else:
-            r = -10.0
+            r = -reward_clip
+            clipped = True
+            self.clip_count += 1
             
         self.C_prev = float(c)
         
@@ -303,6 +310,8 @@ class TopOptEnv(gym.Env):
             "volume": actual_vol,
             "grayness": grayness,
             "n_fea": self.t,
-            "delta_compliance": float(delta_c_norm) if np.isfinite(c) else 0.0
+            "delta_compliance": float(delta_c_norm) if np.isfinite(c) else 0.0,
+            "reward_clipped": clipped,
+            "total_clip_events": self.clip_count
         }
         return obs, r, terminated, truncated, info

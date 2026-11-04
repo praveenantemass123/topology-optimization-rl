@@ -1,6 +1,8 @@
-Method,Mean Compliance,Std Compliance,FEA Solves
-Uniform Baseline,1826.10,0.00,1
-Random Agent (3 seeds),2395.38,295.42,30
-Trained PPO Agent (Gate 3),1054.34,0.00,30
-Canonical Sensitivity Heuristic,609.84,0.00,30
-Converged Classical SIMP,399.38,0.00,95
+Method,Mean Compliance,Std Compliance,FEA Solves,Description
+Uniform Baseline,1826.10,0.00,1,Homogeneous x_e = 0.40
+Random Agent (3 seeds),2395.38,295.42,30,"Seeded uniform random noise in [-1, 1] scaled by delta_max"
+Trained PPO Agent (Gate 3),994.75,85.89,30,"3 separately trained PPO models (seeds 42, 43, 44)"
+Canonical Sensitivity Heuristic,609.84,0.00,30,Greedy sensitivity step -dc/|max dc| with volume projection
+Classical SIMP @ 20 iters,427.08,0.00,20,SIMP OC with sensitivity filter at equal FEA budget 20
+Classical SIMP @ 30 iters,415.65,0.00,30,SIMP OC with sensitivity filter at equal FEA budget 30
+Converged Classical SIMP,399.27,0.00,95,SIMP OC converged to tol=0.005 (ground truth)
