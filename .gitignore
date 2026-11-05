@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / testing cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Microsoft Office temporary files (PowerPoint, Word, Excel)
+~$*.pptx
+~$*.docx
+~$*.xlsx
+*.tmp
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE / Editor configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
