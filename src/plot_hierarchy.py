@@ -96,7 +96,9 @@ def main():
 
     plt.suptitle('Topology Optimization Benchmark Progression on Cantilever 30x10 (Emin = 1e-9)', fontsize=14, fontweight='bold')
     plt.tight_layout()
-    out_img = 'rl_trained_agent_result.png'
+    out_dir = os.path.join(os.path.dirname(__file__), '..', 'results', 'plots')
+    os.makedirs(out_dir, exist_ok=True)
+    out_img = os.path.join(out_dir, 'rl_trained_agent_result.png')
     plt.savefig(out_img, dpi=200)
     plt.close()
     print(f'[Done] Saved 6-panel progression comparison to {out_img}')

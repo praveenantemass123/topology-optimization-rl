@@ -13,9 +13,27 @@ from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 
 
+def resolve_path(filename, subfolders=("results/plots", "results", "presentations")):
+    candidates = [
+        filename,
+        os.path.join(os.path.dirname(__file__), filename),
+        os.path.join(os.path.dirname(__file__), "..", filename),
+    ]
+    for sub in subfolders:
+        candidates.extend([
+            os.path.join(sub, filename),
+            os.path.join(os.path.dirname(__file__), "..", sub, filename),
+            os.path.join(os.path.dirname(__file__), sub, filename),
+        ])
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
+
 def load_sanity_baselines():
     rows = []
-    csv_path = "results/sanity_baselines.csv"
+    csv_path = resolve_path("sanity_baselines.csv") or "results/sanity_baselines.csv"
     if os.path.exists(csv_path):
         with open(csv_path, mode="r") as f:
             reader = csv.DictReader(f)
@@ -98,10 +116,12 @@ def create_deck():
         p.font.color.rgb = c_navy if bold else c_dark
         p.space_after = Pt(4)
         
-    if os.path.exists("cantilever_optimized.png"):
-        s2.shapes.add_picture("cantilever_optimized.png", Inches(7.2), Inches(1.5), width=Inches(5.3))
-    if os.path.exists("mbb_beam_optimized.png"):
-        s2.shapes.add_picture("mbb_beam_optimized.png", Inches(7.2), Inches(4.3), width=Inches(5.3))
+    img_cant = resolve_path("cantilever_optimized.png")
+    if img_cant:
+        s2.shapes.add_picture(img_cant, Inches(7.2), Inches(1.5), width=Inches(5.3))
+    img_mbb = resolve_path("mbb_beam_optimized.png")
+    if img_mbb:
+        s2.shapes.add_picture(img_mbb, Inches(7.2), Inches(4.3), width=Inches(5.3))
         
     # -------------------------------------------------------------
     # SLIDE 3: STAGE 1 - AUDITED BASELINES TABLE
@@ -143,8 +163,9 @@ def create_deck():
         p.font.color.rgb = c_dark
         p.space_after = Pt(3)
         
-    if os.path.exists("convergence_history.png"):
-        s3.shapes.add_picture("convergence_history.png", Inches(7.0), Inches(1.6), width=Inches(5.6))
+    img_conv = resolve_path("convergence_history.png")
+    if img_conv:
+        s3.shapes.add_picture(img_conv, Inches(7.0), Inches(1.6), width=Inches(5.6))
 
     # -------------------------------------------------------------
     # SLIDE 4: STAGE 2 - FORMAL MDP SPECIFICATION
@@ -250,8 +271,9 @@ def create_deck():
         p.font.color.rgb = c_navy if bold else c_dark
         p.space_after = Pt(2)
 
-    if os.path.exists("rl_trained_agent_result.png"):
-        s5.shapes.add_picture("rl_trained_agent_result.png", Inches(0.8), Inches(4.7), width=Inches(11.7))
+    img_rl = resolve_path("rl_trained_agent_result.png")
+    if img_rl:
+        s5.shapes.add_picture(img_rl, Inches(0.8), Inches(4.7), width=Inches(11.7))
 
     # -------------------------------------------------------------
     # SLIDE 6: STAGE 4 - RESIDUAL VERIFICATION & STAGE 5 ROADMAP
@@ -292,12 +314,13 @@ def create_deck():
         p.font.color.rgb = c_navy if bold else c_dark
         p.space_after = Pt(3)
 
-    out_path = "BTP_TopOpt_RL_Progress_Praveen.pptx"
+    out_dir = os.path.dirname(__file__) if os.path.basename(os.getcwd()) != "presentations" else "."
+    out_path = os.path.join(out_dir, "BTP_TopOpt_RL_Progress_Praveen.pptx")
     try:
         prs.save(out_path)
         print(f"[Done] Presentation successfully saved to {out_path}")
     except PermissionError:
-        alt_path = "BTP_TopOpt_RL_Progress_Praveen_Updated.pptx"
+        alt_path = os.path.join(out_dir, "BTP_TopOpt_RL_Progress_Praveen_Updated.pptx")
         prs.save(alt_path)
         print(f"[Warning] '{out_path}' is open in PowerPoint. Saved updated deck to '{alt_path}' instead.")
 

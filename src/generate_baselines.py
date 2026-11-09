@@ -66,7 +66,9 @@ for name, case in cases_to_run:
         "converged": res["converged"]
     })
 
-csv_file = "baselines.csv"
+csv_dir = os.path.join(os.path.dirname(__file__), "..", "results")
+os.makedirs(csv_dir, exist_ok=True)
+csv_file = os.path.join(csv_dir, "baselines.csv")
 fieldnames = [
     "case_name", "bc_type", "nelx", "nely", "target_volfrac",
     "final_compliance", "iterations", "runtime_seconds", "final_volfrac", "grayness", "converged"
