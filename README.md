@@ -68,6 +68,13 @@ btp/
 │   ├── test_solver_cases.py     # FEA solver accuracy & boundary condition tests
 │   └── test_topopt_env.py       # Gymnasium API & exact volume bisection tests
 │
+├── prof_codes_without_phase/    # Professor Pavan Asur's reference MATLAB SIMP codes (no phase field)
+│   ├── half_three_point_bending.m  # Half-MBB beam 88-line SIMP compliance optimization
+│   ├── mult_load.m                 # Multiple load cases SIMP optimization
+│   ├── mult_load_WIthHole.m        # Multi-load SIMP with passive hole domain
+│   ├── TBP_withHole.m              # Three-point bending beam with hole obstacle
+│   └── README.md                   # Citation and documentation of the professor's framework
+│
 ├── archive/                     # Historical prototype code (for audit trail)
 │   └── legacy_prototypes/
 │
@@ -88,6 +95,7 @@ These files govern academic requirements, theoretical foundations, and formal ev
 5. **`docs/lectures/Reinforcement_Learning_Lectures_1_2_and_3_Minimal_Study_Guide.html`**: Interactive HTML revision guide for RL foundational theory.
 6. **`presentations/BTP_TopOpt_RL_Progress_Praveen.pptx`**: Review presentation delivered to the supervisor detailing audited Stage 1–4 results.
 7. **`presentations/generate_presentation.py`**: Automated script compiling verified benchmark tables and plots into the supervisor slide deck.
+8. **`prof_codes_without_phase/`**: Prof. Pavan Asur's original MATLAB reference SIMP codes (`half_three_point_bending.m`, `mult_load.m`, `mult_load_WIthHole.m`, `TBP_withHole.m`) without phase-field modeling, from his research repository `Pavan-asur/SIMP_Topology_Optimisation_FGM`.
 
 ### B. Core Mechanics & Algorithmic Implementation (`src/`)
 * **Finite Element Analysis (`src/fem/`)**:
