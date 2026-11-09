@@ -1,192 +1,151 @@
 """
 train.py
 ========
-Audited & Hardened PPO training pipeline for RL Topology Optimization.
+PPO training on the 30x10 cantilever benchmark.
 
-Supports:
-1. Standard Mode (Gate 3): Trains raw continuous PPO policy to beat Random & Uniform.
-2. Residual Mode (Stage 4): Trains Heuristic Residual PPO policy (alpha = 0.2) to close the gap with Classical SIMP.
-- Multi-seed training (e.g. seeds 42, 43, 44) for rigorous evaluation
-- Tracks reward clipping events to guarantee gradients are never artificially squashed
-- Evaluates across all seeds to compute mean ± std
+Modes
+    standard  PPO acts directly on the design (Gate 3 prototype), 50 000 steps.
+    residual  PPO adds a correction (weight alpha = 0.2) to the physics base
+              action (Stage 4), 30 000 steps.
+
+Each seed is trained in its own process with a single torch thread, so a run is
+reproducible on a given machine. After training, the deterministic policy is
+rolled out once and its final compliance is reported (mean and sample standard
+deviation over the seeds).
+
+Usage (from the repo root):
+    python src/train.py --mode residual
+    python src/train.py --mode standard --timesteps 50000 --seeds 42 43 44
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-
-import time
 import argparse
+import csv
+import multiprocessing as mp
+import os
+import time
+from typing import Any, Dict, List, Optional, Sequence
+
 import numpy as np
-import gymnasium as gym
-from gymnasium import spaces
 
-from stable_baselines3 import PPO
-from stable_baselines3.common.monitor import Monitor
+from common import (ALPHA, CHECKPOINT_DIR, PPO_MODES, RESULTS_DIR, TRAIN_SEEDS, FlatObsWrapper,
+                    make_config, mean_std, model_policy, rollout)
 
-from env.topopt_env import TopOptEnv
-from fem.cases import cantilever_case
+__all__ = ["FlatObsWrapper", "train_ppo", "train_many", "train_multi_seed"]
 
 
-class FlatObsWrapper(TopOptEnv):
-    """Flattens 4-channel observation and 2D action space for standard SB3 continuous policies."""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        flat_dim = int(np.prod(self.observation_space.shape))
-        self.observation_space = spaces.Box(
-            low=-5.0, high=5.0, shape=(flat_dim,), dtype=np.float32
-        )
-        act_dim = int(np.prod(self.action_space.shape))
-        self.action_space = spaces.Box(
-            low=-1.0, high=1.0, shape=(act_dim,), dtype=np.float32
-        )
-        
-    def reset(self, seed=None, options=None):
-        obs, info = super().reset(seed=seed, options=options)
-        return obs.flatten().astype(np.float32), info
-        
-    def step(self, action):
-        action_2d = np.array(action, dtype=np.float32).reshape((self.nely, self.nelx))
-        obs, r, term, trunc, info = super().step(action_2d)
-        return obs.flatten().astype(np.float32), r, term, trunc, info
+def train_ppo(
+    env_config: Dict[str, Any],
+    seed: int,
+    timesteps: int,
+    lr: float,
+    log_std_init: float,
+    ckpt_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Train one PPO model and evaluate its deterministic policy for one episode.
 
+    Returns the rollout summary (see common.rollout) extended with the training
+    log: "returns" and "train_final_c" per training episode, and "train_time".
+    """
+    import torch
+    torch.set_num_threads(1)
+    from stable_baselines3 import PPO
+    from stable_baselines3.common.callbacks import BaseCallback
 
-def train_single_seed(
-    env_config,
-    total_timesteps=50000,
-    seed=42,
-    mode="standard",
-    lr=3e-4,
-    log_std_init=-1.5,
-    ckpt_prefix="ppo_gate3"
-):
-    print(f"\n==========================================================")
-    print(f" Training PPO on TopOptEnv [{mode.upper()}] | Seed: {seed} | Steps: {total_timesteps}")
-    print(f"==========================================================")
-    
-    train_env = FlatObsWrapper(config=env_config, seed=seed)
-    monitored_env = Monitor(train_env)
-    
-    policy_kwargs = dict(
-        log_std_init=log_std_init,
-        net_arch=dict(pi=[128, 128], vf=[128, 128])
-    )
-    
+    class EpisodeLog(BaseCallback):
+        """Records the return and the final compliance of every training episode."""
+
+        def __init__(self):
+            super().__init__()
+            self.returns: List[float] = []
+            self.final_c: List[float] = []
+            self._ret = 0.0
+
+        def _on_step(self) -> bool:
+            self._ret += float(self.locals["rewards"][0])
+            if self.locals["dones"][0]:
+                self.returns.append(self._ret)
+                self.final_c.append(float(self.locals["infos"][0]["compliance"]))
+                self._ret = 0.0
+            return True
+
+    env = FlatObsWrapper(config=env_config, seed=seed)
     model = PPO(
-        "MlpPolicy",
-        monitored_env,
-        learning_rate=lr,
-        n_steps=256,
-        batch_size=64,
-        n_epochs=5,
-        gamma=0.99,
-        gae_lambda=0.95,
-        clip_range=0.2,
-        ent_coef=0.001,
-        policy_kwargs=policy_kwargs,
-        seed=seed,
-        verbose=0
+        "MlpPolicy", env,
+        learning_rate=lr, n_steps=256, batch_size=64, n_epochs=5,
+        gamma=0.99, gae_lambda=0.95, clip_range=0.2, ent_coef=0.001,
+        policy_kwargs=dict(log_std_init=log_std_init, net_arch=dict(pi=[128, 128], vf=[128, 128])),
+        seed=seed, device="cpu", verbose=0,
     )
-    
-    t0 = time.time()
-    model.learn(total_timesteps=total_timesteps)
-    train_time = time.time() - t0
-    
-    os.makedirs("results/checkpoints", exist_ok=True)
-    ckpt = f"results/checkpoints/{ckpt_prefix}_seed{seed}.zip"
-    model.save(ckpt)
-    print(f"[Done] Seed {seed} trained in {train_time:.1f}s ({total_timesteps/train_time:.0f} FPS). Checkpoint saved to {ckpt}")
-    
-    # Deterministic Evaluation
-    test_env = FlatObsWrapper(config=env_config, seed=seed)
-    obs, info = test_env.reset(seed=seed)
-    test_env.action_space.seed(seed)
-    
-    for step in range(env_config["max_steps"]):
-        action, _ = model.predict(obs, deterministic=True)
-        obs, reward, terminated, truncated, info = test_env.step(action)
-        if terminated or truncated:
-            break
-            
-    final_c = info["compliance"]
-    final_v = info["volume"]
-    clip_events = info.get("total_clip_events", 0)
-    print(f"  Seed {seed} -> Final Compliance: {final_c:.2f} | Vol: {final_v:.4f} | Clip Events: {clip_events}")
-    
-    return final_c, clip_events
+    log = EpisodeLog()
+    t0 = time.perf_counter()
+    model.learn(total_timesteps=timesteps, callback=log)
+    train_time = time.perf_counter() - t0
+
+    if ckpt_path:
+        os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
+        model.save(ckpt_path)
+
+    result = rollout(FlatObsWrapper(config=env_config, seed=seed), model_policy(model), seed)
+    result.update(seed=seed, returns=log.returns, train_final_c=log.final_c,
+                  train_time=train_time, timesteps=int(model.num_timesteps))
+    return result
+
+
+def _worker(job: Dict[str, Any]) -> Dict[str, Any]:
+    res = train_ppo(**job["kwargs"])
+    res["tag"] = job["tag"]
+    print(f"  [{job['tag']:9s}] seed {res['seed']}: C = {res['compliance']:.2f}  "
+          f"V = {res['volume']:.6f}  ({res['train_time']:.0f} s)", flush=True)
+    return res
+
+
+def train_many(jobs: Sequence[Dict[str, Any]], workers: int) -> List[Dict[str, Any]]:
+    """Run training jobs ({"tag": str, "kwargs": train_ppo kwargs}), in parallel if workers > 1."""
+    if workers > 1 and len(jobs) > 1:
+        with mp.get_context("spawn").Pool(min(workers, len(jobs))) as pool:
+            return pool.map(_worker, jobs, chunksize=1)
+    return [_worker(j) for j in jobs]
 
 
 def train_multi_seed(
-    seeds=[42, 43, 44],
-    total_timesteps=30000,
-    mode="residual",
-    alpha=0.2
+    seeds: Sequence[int] = TRAIN_SEEDS,
+    total_timesteps: Optional[int] = None,
+    mode: str = "residual",
+    alpha: float = ALPHA,
+    workers: int = 1,
 ):
-    is_residual = (mode == "residual")
-    lr = 1e-4 if is_residual else 3e-4
-    log_std_init = -2.0 if is_residual else -1.5
-    ckpt_prefix = "ppo_stage4_residual" if is_residual else "ppo_gate3"
-    
-    env_config = {
-        "nelx": 30,
-        "nely": 10,
-        "volfrac": 0.4,
-        "rmin": 1.5,
-        "delta_max": 0.05,
-        "max_steps": 30,
-        "project_volume": True,
-        "w_stiff": 1.0,
-        "w_weight": 10.0,
-        "w_gray": 0.0,
-        "w_smooth": 0.0,
-        "w_term": 0.0,
-        "filter_type": "density",
-        "channels": 4,
-        "Emin": 1e-9,
-        "reward_clip": 2.0,
-        "residual": is_residual,
-        "alpha": alpha
-    }
-    
-    results = []
-    total_clips = 0
-    t_start = time.time()
-    
-    for seed in seeds:
-        c, clips = train_single_seed(
-            env_config,
-            total_timesteps=total_timesteps,
-            seed=seed,
-            mode=mode,
-            lr=lr,
-            log_std_init=log_std_init,
-            ckpt_prefix=ckpt_prefix
-        )
-        results.append(c)
-        total_clips += clips
-        
-    mean_c = float(np.mean(results))
-    std_c = float(np.std(results))
-    total_time = time.time() - t_start
-    
-    print("\n==========================================================")
-    print(f" Multi-Seed Training Summary [{mode.upper()}] ({len(seeds)} Seeds, {total_timesteps} Steps each)")
-    print("==========================================================")
-    for s, c in zip(seeds, results):
-        print(f"  Seed {s}: Compliance = {c:.2f}")
-    print(f"  Aggregate Compliance: {mean_c:.2f} ± {std_c:.2f}")
-    print(f"  Total Reward Clip Events during evaluation: {total_clips}")
-    print(f"  Total Elapsed Time: {total_time:.1f}s")
-    print("==========================================================")
+    """Train one model per seed; write checkpoints and results/train_<mode>.csv."""
+    hp = PPO_MODES[mode]
+    timesteps = int(total_timesteps or hp["timesteps"])
+    cfg = make_config("audited", residual=(mode == "residual"), alpha=alpha)
+    print(f"== PPO [{mode}] {timesteps} steps x seeds {list(seeds)} ==", flush=True)
+    jobs = [{
+        "tag": mode,
+        "kwargs": dict(env_config=cfg, seed=s, timesteps=timesteps, lr=hp["lr"],
+                       log_std_init=hp["log_std_init"],
+                       ckpt_path=os.path.join(CHECKPOINT_DIR, f"{hp['ckpt']}_seed{s}.zip")),
+    } for s in seeds]
+    results = train_many(jobs, workers)
+
+    mean_c, std_c = mean_std([r["compliance"] for r in results])
+    with open(os.path.join(RESULTS_DIR, f"train_{mode}.csv"), "w", newline="") as f:
+        wr = csv.writer(f)
+        wr.writerow(["mode", "seed", "timesteps", "final_compliance", "volume", "gray_fraction",
+                     "episode_return", "reward_clip_events", "fea_solves"])
+        for r in results:
+            wr.writerow([mode, r["seed"], r["timesteps"], f"{r['compliance']:.4f}", f"{r['volume']:.6f}",
+                         f"{r['grayness']:.4f}", f"{r['return']:.4f}", r["clip_events"], r["n_fea"]])
+    print(f"  {mode}: C = {mean_c:.2f} +/- {std_c:.2f} (sample std over {len(results)} seeds)")
     return mean_c, std_c
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train PPO on TopOptEnv across multiple seeds.")
-    parser.add_argument("--timesteps", type=int, default=30000, help="Timesteps per seed")
-    parser.add_argument("--seeds", nargs="+", type=int, default=[42, 43, 44], help="Random seeds")
-    parser.add_argument("--mode", type=str, default="residual", choices=["standard", "residual"], help="Training mode")
-    parser.add_argument("--alpha", type=float, default=0.2, help="Residual scaling alpha")
-    args = parser.parse_args()
-    
-    train_multi_seed(seeds=args.seeds, total_timesteps=args.timesteps, mode=args.mode, alpha=args.alpha)
+    ap = argparse.ArgumentParser(description="Train PPO on the topology optimization environment.")
+    ap.add_argument("--mode", choices=sorted(PPO_MODES), default="residual")
+    ap.add_argument("--timesteps", type=int, default=None, help="default: 50000 standard, 30000 residual")
+    ap.add_argument("--seeds", nargs="+", type=int, default=list(TRAIN_SEEDS))
+    ap.add_argument("--alpha", type=float, default=ALPHA)
+    ap.add_argument("--workers", type=int, default=max(1, min(3, os.cpu_count() or 1)))
+    a = ap.parse_args()
+    train_multi_seed(a.seeds, a.timesteps, a.mode, a.alpha, a.workers)
