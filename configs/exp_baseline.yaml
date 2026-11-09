@@ -17,8 +17,18 @@ env:
   delta_max: 0.05
   max_steps: 30
   project_volume: true
-  lam_v: 10.0
-  beta: 0.0
+  # Weighted multi-factor reward:
+  #   R_t = w_stiff*F_stiffness + w_weight*F_weight + w_gray*F_grayness
+  #       + w_smooth*F_smoothness + w_term*F_terminal, clipped to [-reward_clip, reward_clip]
+  # These values reproduce the audited Stage 3/4 reward (residual PPO C = 441.9).
+  # Suggested ablation values: w_gray 0.05..0.2, w_smooth 0.01, w_term 1.0.
+  w_stiff: 1.0
+  w_weight: 10.0          # replaces lam_v; ~0 effect while project_volume is true
+  weight_penalty: "abs"   # "abs": -|V-V*|, "sq_rel": -((V-V*)/V*)^2
+  w_gray: 0.0
+  w_smooth: 0.0
+  w_term: 0.0             # replaces beta
+  reward_clip: 2.0
   filter_type: "density"
   channels: 4
 

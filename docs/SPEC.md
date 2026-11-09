@@ -191,13 +191,20 @@ case = {
 2. Optional density filter for `x_phys`.
 3. **Volume projection:** find shift `s` (bisection) such that `mean(clip(x + s, xmin, 1)) = volfrac`; apply. (Switch controlled by `config["project_volume"]`.)
 4. FEA: `c`, `ce`.
-5. **Reward:** `r = -(c - C_prev) / C0 - lam_v * abs(V - volfrac)` (+ optional terminal bonus `-beta * c / C0`). Store `C_prev = c`.
+5. **Reward (weighted multi-factor):**
+   `R = w_stiff * F_stiff + w_weight * F_weight + w_gray * F_gray + w_smooth * F_smooth + w_term * F_term`, then `r = clip(R, -reward_clip, reward_clip)` (non-finite `c` gives `-reward_clip`). Store `C_prev = c`.
+   - `F_stiff = -(c - C_prev) / C0`
+   - `F_weight = -abs(V - volfrac)` (or `-((V - volfrac) / volfrac)**2` with `weight_penalty: sq_rel`); ~0 while `project_volume` is on, so `w_weight` only matters without projection
+   - `F_gray = -mean(4 * x_phys * (1 - x_phys))`
+   - `F_smooth = -mean(a**2)`, with `a` the raw policy action (the residual, in residual mode)
+   - `F_term = -c / C0` on the last step, else 0
+   - Defaults `w_stiff=1, w_weight=10, w_gray=0, w_smooth=0, w_term=0, reward_clip=2` reproduce the audited Stage 3/4 reward `-(c - C_prev)/C0 - 10*abs(V - volfrac)`. `lam_v` and `beta` remain accepted as aliases of `w_weight` and `w_term`. Per-factor values are returned in `info["reward_terms"]`.
 6. `t += 1`; `terminated = False`; `truncated = (t >= max_steps)`.
 7. Return `obs, r, terminated, truncated, info` with `info = {compliance, volume, grayness, n_fea}`.
 
-**Notes for the coder:** keep FEA objects (KE, edofMat, filter matrices) cached per grid size; never rebuild them per step. Observation normalization must be deterministic. Compliance may blow up if the structure disconnects (near-singular `K`), so clip rewards to a sane range (e.g. [-10, 10]) and use `Emin` as defined.
+**Notes for the coder:** keep FEA objects (KE, edofMat, filter matrices) cached per grid size; never rebuild them per step. Observation normalization must be deterministic. Compliance may blow up if the structure disconnects (near-singular `K`), so clip rewards to a sane range (`reward_clip = 2.0`) and use `Emin` as defined.
 
-**Tests:** `gymnasium.utils.env_checker.check_env` passes; zero action leaves density unchanged (up to projection); reward is zero if the compliance does not change; the episode length equals `max_steps`; two resets with the same seed give identical observations.
+**Tests:** `gymnasium.utils.env_checker.check_env` passes; zero action leaves density unchanged (up to projection); reward is zero if the compliance does not change; each reward factor matches its formula and the total equals the clipped weighted sum (`tests/test_reward.py`); the episode length equals `max_steps`; two resets with the same seed give identical observations.
 
 ---
 
