@@ -1,5 +1,8 @@
 # configs/exp_baseline.yaml
-# Configuration for BTP RL Topology Optimization experiments
+# Reference copy of the settings used for the results in results/.
+# The scripts do NOT read this file: the values used are defined in
+# src/common.py (BASE_CONFIG, REWARDS, ALPHA, PPO_MODES) and src/train.py.
+# Keep this file in sync with those when changing a setting.
 
 mesh:
   nelx: 30
@@ -32,19 +35,27 @@ env:
   filter_type: "density"
   channels: 4
 
-ppo:
-  learning_rate: 3.0e-4
-  n_steps: 128
+residual:
+  alpha: 0.2              # scale of the learned correction (src/common.py ALPHA)
+
+ppo:                      # src/train.py and src/common.py PPO_MODES
+  policy: "MLP [128, 128] actor and critic"
+  n_steps: 256
   batch_size: 64
   n_epochs: 5
   gamma: 0.99
   gae_lambda: 0.95
   clip_range: 0.2
-  ent_coef: 0.005
-  total_timesteps: 5000
+  ent_coef: 0.001
+  standard:
+    learning_rate: 3.0e-4
+    log_std_init: -1.5
+    total_timesteps: 50000
+  residual:
+    learning_rate: 1.0e-4
+    log_std_init: -2.0
+    total_timesteps: 30000
 
 training:
-  seed: 42
-  eval_freq: 500
+  seeds: [42, 43, 44]
   checkpoint_dir: "results/checkpoints"
-  log_dir: "results/logs"
