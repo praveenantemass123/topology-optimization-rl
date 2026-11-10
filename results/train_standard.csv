@@ -1,0 +1,4 @@
+mode,seed,timesteps,final_compliance,volume,gray_fraction,episode_return,reward_clip_events,fea_solves
+standard,42,50176,735.0313,0.400000,0.9633,0.5975,0,31
+standard,43,50176,948.2857,0.400000,0.9667,0.4807,0,31
+standard,44,50176,997.1096,0.400000,0.9500,0.4540,0,31
