@@ -1,5 +1,9 @@
-case_name,bc_type,nelx,nely,target_volfrac,final_compliance,iterations,runtime_seconds,final_volfrac,grayness,converged
-cantilever_30x10,cantilever_mid_right,30,10,0.4,399.3774,95,0.2182,0.4001,0.6667,True
-cantilever_60x20,cantilever_mid_right,60,20,0.4,247.8027,250,2.7792,0.4001,0.335,False
-mbb_30x10,mbb,30,10,0.5,225.665,113,0.2694,0.5,0.3967,True
-mbb_60x20,mbb,60,20,0.5,203.1714,164,1.7038,0.5001,0.21,True
+case_name,bc_type,filter,nelx,nely,target_volfrac,final_compliance,iterations,fea_solves,runtime_seconds,final_volfrac,grayness,max_change,converged
+cantilever_30x10,cantilever_mid_right,sensitivity,30,10,0.4,399.4901,95,96,0.23,0.400000,0.6667,0.00481,True
+cantilever_60x20,cantilever_mid_right,sensitivity,60,20,0.4,246.6035,355,356,4.45,0.400000,0.3183,0.00496,True
+mbb_30x10,mbb,sensitivity,30,10,0.5,225.6618,111,112,0.25,0.500000,0.4000,0.00493,True
+mbb_60x20,mbb,sensitivity,60,20,0.5,203.1984,164,165,1.76,0.500000,0.2100,0.00498,True
+cantilever_30x10,cantilever_mid_right,density,30,10,0.4,388.0973,79,80,0.24,0.400000,0.6667,0.00500,True
+cantilever_60x20,cantilever_mid_right,density,60,20,0.4,266.0959,87,88,0.95,0.400000,0.4167,0.00495,True
+mbb_30x10,mbb,density,30,10,0.5,249.0233,63,64,0.15,0.500000,0.5300,0.00484,True
+mbb_60x20,mbb,density,60,20,0.5,217.6918,331,332,3.80,0.500000,0.3317,0.00487,True

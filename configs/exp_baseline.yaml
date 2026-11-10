@@ -20,7 +20,7 @@ env:
   # Weighted multi-factor reward:
   #   R_t = w_stiff*F_stiffness + w_weight*F_weight + w_gray*F_grayness
   #       + w_smooth*F_smoothness + w_term*F_terminal, clipped to [-reward_clip, reward_clip]
-  # These values reproduce the audited Stage 3/4 reward (residual PPO C = 441.9).
+  # These values reproduce the audited Stage 3/4 reward (residual PPO C = 441.88 +/- 1.79).
   # Suggested ablation values: w_gray 0.05..0.2, w_smooth 0.01, w_term 1.0.
   w_stiff: 1.0
   w_weight: 10.0          # replaces lam_v; ~0 effect while project_volume is true

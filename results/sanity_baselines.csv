@@ -1,9 +1,13 @@
-Method,Mean Compliance,Std Compliance,FEA Solves,Description
-Uniform Baseline,1826.10,0.00,1,Homogeneous x_e = 0.40
-Random Agent (3 seeds),2391.79,297.46,30,"Seeded uniform random noise in [-1, 1] scaled by delta_max"
-Standard PPO Agent (Gate 3),994.30,85.81,30,"3 separately trained PPO models (seeds 42, 43, 44)"
-Canonical Sensitivity Heuristic,602.26,0.00,30,Greedy sensitivity step -dc/|max dc| with volume projection
-Residual PPO Agent (Stage 4),441.88,1.01,30,3 separately trained Residual PPO models (alpha=0.2)
-Classical SIMP @ 20 iters,427.08,0.00,20,SIMP OC with sensitivity filter at equal FEA budget 20
-Classical SIMP @ 30 iters,415.65,0.00,30,SIMP OC with sensitivity filter at equal FEA budget 30
-Converged Classical SIMP,399.27,0.00,95,SIMP OC converged to tol=0.005 (ground truth)
+Method,Mean Compliance,Std Compliance,Per-seed Compliance,Design Updates,FEA Solves,Description
+Uniform Baseline,1826.10,0.00,1826.10,0,1,Homogeneous x_e = 0.40
+Random Agent (3 seeds),2391.79,364.31,2772.00 2045.80 2357.57,30,31,"Uniform random action in [-1, 1] scaled by delta_max, seeds 0 1 2"
+Standard PPO Agent (Gate 3),893.48,139.37,735.03 948.29 997.11,30,31,"3 separately trained PPO models (seeds 42 43 44), deterministic policy"
+Canonical Sensitivity Heuristic,579.66,0.00,579.66,30,31,Greedy step -dC/dx / max|dC/dx| (chain rule through the density filter) with volume projection
+Residual Base (zero residual),442.80,0.00,442.80,30,31,Standardised sensitivity base action only; no learned correction
+Residual PPO Agent (Stage 4),441.88,1.79,443.94 440.90 440.78,30,31,"3 separately trained residual PPO models (alpha=0.2), deterministic policy"
+Classical SIMP @ 20 updates (sensitivity filter),425.22,0.00,425.22,20,21,"SIMP OC, sensitivity filter, compliance of the design after 20 updates"
+Classical SIMP @ 30 updates (sensitivity filter),415.61,0.00,415.61,30,31,"SIMP OC, sensitivity filter, compliance of the design after 30 updates"
+Classical SIMP @ 20 updates (density filter),436.97,0.00,436.97,20,21,"SIMP OC, density filter, compliance of the design after 20 updates"
+Classical SIMP @ 30 updates (density filter),418.49,0.00,418.49,30,31,"SIMP OC, density filter, compliance of the design after 30 updates"
+Converged Classical SIMP (sensitivity filter),399.49,0.00,399.49,95,96,"SIMP OC, sensitivity filter, converged to max|dx| < 0.005"
+Converged Classical SIMP (density filter),388.10,0.00,388.10,79,80,"SIMP OC, density filter, converged to max|dx| < 0.005"

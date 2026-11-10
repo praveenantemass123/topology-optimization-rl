@@ -158,7 +158,7 @@ case = {
 6. `change = max|xnew - x|`; stop when `change < tol` or `max_iter`.
 7. Initial `x = volfrac` everywhere.
 
-**Return:** `{"x_phys", "compliance", "history_c", "n_fea", "time_s", "converged"}`
+**Return:** `{"x_phys", "compliance", "volume", "history_c", "n_updates", "n_fea", "change", "time_s", "converged"}`. `compliance` is a fresh FEA of the returned `x_phys`; `n_fea = n_updates + 1`.
 
 **Tests**
 - Compliance decreases (almost monotonically) and the final volume equals `volfrac` within 1e-3.

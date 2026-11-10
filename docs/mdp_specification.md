@@ -91,10 +91,10 @@ $$R_t^{\text{clipped}} = \text{clip}\left(R_t,\, -R_{\max},\, R_{\max}\right), \
 
 **Interaction with the exact volume projection.** Because the bisection projection (Section C.2) enforces $|V_t - V^*| < 10^{-6}$ at every step, $\mathcal{F}_{\text{weight}} \approx 0$ and $w_{\text{weight}}$ is effectively redundant in the projected setting. It is kept so that the same reward is valid when `project_volume: false` (pure soft-penalty approach), which is a planned ablation.
 
-**Audited configuration (Stage 3 and 4 results).** The defaults $w_{\text{stiff}} = 1$, $w_{\text{weight}} = 10$, $w_{\text{gray}} = w_{\text{smooth}} = w_{\text{term}} = 0$, $R_{\max} = 2$ reproduce exactly the reward used for all reported results (residual PPO $C = 441.9 \pm 1.0$):
+**Audited configuration (Stage 3 and 4 results).** The defaults $w_{\text{stiff}} = 1$, $w_{\text{weight}} = 10$, $w_{\text{gray}} = w_{\text{smooth}} = w_{\text{term}} = 0$, $R_{\max} = 2$ reproduce exactly the reward used for all reported results (residual PPO $C = 441.88 \pm 1.79$, sample standard deviation over 3 seeds; the residual base action alone gives $442.80$):
 $$r_t = \frac{C_{t-1} - C_t}{C_0} - 10 \left\lvert V_t - V^* \right\rvert$$
 
-**Recommended ablation weights** (to be evaluated, not yet trained): $w_{\text{gray}} = 0.05$, $w_{\text{smooth}} = 0.01$, $w_{\text{term}} = 1.0$. With these, the grayness contribution is about $-0.01$ to $-0.04$ per step and churn about $-0.001$ to $-0.01$, small relative to the stiffness signal of $+0.02$ to $+0.08$.
+**Ablation weights** (trained in `src/run_weighted_reward.py`, result $C = 443.89 \pm 0.47$): $w_{\text{gray}} = 0.05$, $w_{\text{smooth}} = 0.01$, $w_{\text{term}} = 1.0$. With these, the grayness contribution is about $-0.01$ to $-0.04$ per step and churn about $-0.001$ to $-0.01$, small relative to the stiffness signal of $+0.02$ to $+0.08$.
 
 Each factor and its weighted contribution are returned per step in `info["reward_terms"]` for logging and ablation analysis.
 

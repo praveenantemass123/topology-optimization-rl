@@ -1,0 +1,4 @@
+mode,seed,timesteps,final_compliance,volume,gray_fraction,episode_return,reward_clip_events,fea_solves
+residual,42,30208,443.9375,0.400000,0.7733,0.7569,0,31
+residual,43,30208,440.9047,0.400000,0.7667,0.7586,0,31
+residual,44,30208,440.7845,0.400000,0.7667,0.7586,0,31
