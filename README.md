@@ -114,14 +114,16 @@ These files govern academic requirements, theoretical foundations, and formal ev
   * `train.py`: PPO reinforcement learning pipeline with 3-seed reproducibility and tensorboard logging.
   * `evaluate_baselines.py`: Multi-seed evaluation comparing Random, Uniform, Standard PPO, Sensitivity Heuristic, Residual PPO, and SIMP.
   * `plot_hierarchy.py`: Renders the publication-grade 6-panel comparison figure.
+  * `run_weighted_reward.py`: End-to-end run of the weighted multi-factor reward (baselines + residual PPO with audited and multi-factor weights); writes `results/weighted_reward/`. See `docs/RUNNING.md` for Windows commands.
 
 ### C. Test Suite (`tests/`)
-* **43 Automated Tests** verifying element stiffness symmetry, zero rigid-body energy, energy conservation ($U^T K U = F^T U$), filter normalization, and Gym compliance.
+* **58 Automated Tests** verifying element stiffness symmetry, zero rigid-body energy, energy conservation ($U^T K U = F^T U$), filter normalization, Gym compliance, and every term of the weighted multi-factor reward (`test_reward.py`).
 
 ### D. Benchmark Results & Checkpoints (`results/`)
 * `results/baselines.csv`: Authoritative SIMP benchmarks on Cantilever & MBB (30x10 and 60x20).
 * `results/sanity_baselines.csv`: Statistical performance table across 3 seeds.
 * `results/checkpoints/`: Saved model weights for Gate 3 Standard PPO and Stage 4 Residual PPO.
+* `results/weighted_reward/`: Weighted multi-factor reward run (results CSV, per-step reward terms, training curves, topologies, checkpoints).
 * `results/plots/`: High-resolution figures displaying optimized topologies and convergence curves.
 
 ---

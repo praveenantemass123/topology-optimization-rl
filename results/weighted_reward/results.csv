@@ -1,0 +1,10 @@
+Method,Mean compliance,Std compliance,Gray fraction (0.1<x<0.9),Episode return,FEA solves,Reward weights
+Uniform design,1826.10,0.00,1.000,-0.0000,1,-
+Random agent,2391.79,297.46,1.000,-0.3098,30,-
+Greedy heuristic,602.26,0.00,1.000,0.6702,30,-
+Residual base (zero residual),442.80,0.00,0.767,0.7575,30,-
+"Residual PPO, audited reward",442.20,1.14,0.770,0.7578,30,w_stiff=1.0 w_weight=10.0 w_gray=0.0 w_smooth=0.0 w_term=0.0
+"Residual PPO, multi-factor reward",444.06,0.52,0.773,-0.6071,30,w_stiff=1.0 w_weight=10.0 w_gray=0.05 w_smooth=0.01 w_term=1.0
+SIMP @ 30 FEAs,415.65,0.00,0.720,,30,-
+
+"# timesteps per seed = 30000; seeds = [42, 43, 44]; alpha = 0.2"

@@ -11,7 +11,7 @@
 
 The goal is to formulate 2D minimum-compliance topology optimization as a sequential decision-making process under the Markov Decision Process (MDP) framework $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma)$. 
 
-A policy network $\pi_\theta(a_t \mid s_t)$ acts as an iterative structural designer: observing the current material distribution and stress field, applying bounded continuous updates to element densities, and receiving feedback based on structural stiffness gains and volume constraint satisfaction.
+A policy network $\pi_\theta(a_t \mid s_t)$ acts as an iterative structural designer: observing the current material distribution and stress field, applying bounded continuous updates to element densities, and receiving feedback from a weighted combination of physical factors: stiffness gain, volume constraint satisfaction, grayness, action smoothness and final design quality.
 
 ---
 
@@ -67,17 +67,47 @@ The state transition $s_{t+1} \sim \mathcal{P}(s_{t+1} \mid s_t, a_t)$ is **dete
 
 ---
 
-### D. Reward Function ($\mathcal{R}$)
-The reward function drives compliance minimization while penalizing any residual volume constraint deviation:
+### D. Reward Function ($\mathcal{R}$): Weighted Multi-Factor Formulation
+In RL the agent optimizes only what the scalar reward measures. A stiffness-only reward drives the agent to add material everywhere; a weight-only reward drives it to delete material. The reward is therefore a weighted sum of normalized physical factors:
 
-$$r_t = \frac{C_t - C_{t+1}}{C_0} - \lambda_v \left| \frac{\sum_e x_{\text{phys}, t+1, e}}{N} - V^* \right|$$
+$$R_t = w_{\text{stiff}}\,\mathcal{F}_{\text{stiffness}} + w_{\text{weight}}\,\mathcal{F}_{\text{weight}} + w_{\text{gray}}\,\mathcal{F}_{\text{grayness}} + w_{\text{smooth}}\,\mathcal{F}_{\text{smoothness}} + w_{\text{term}}\,\mathcal{F}_{\text{terminal}}$$
 
-* **Relative Compliance Improvement:**  
-  Dividing by the initial uniform compliance $C_0$ normalizes the reward across arbitrary load magnitudes and grid sizes. A positive reward $r_t > 0$ strictly signifies a stiffer structure.
-* **No Artificial $\times 100$ Multiplier:**  
-  The reward directly measures fractional stiffness gains (typically $+0.01$ to $+0.08$ per step), keeping gradients well-conditioned.
-* **Safety Bound:**  
-  Reward is safely clipped to $[-2.0, 2.0]$ to guard against numerical singularities if a structure becomes disconnected, while never clipping normal physical design updates.
+$$R_t^{\text{clipped}} = \text{clip}\left(R_t,\, -R_{\max},\, R_{\max}\right), \qquad R_{\max} = 2.0$$
+
+| Factor | Formula | Typical range | Config key (default) |
+| :--- | :--- | :---: | :--- |
+| **Stiffness** | $\mathcal{F}_{\text{stiffness}} = \dfrac{C_{t-1} - C_t}{C_0}$ | $[0.01, 0.10]$ per step | `w_stiff` (1.0) |
+| **Weight / volume** | $\mathcal{F}_{\text{weight}} = -\left\lvert V_t - V^* \right\rvert$ or $-\left(\dfrac{V_t - V^*}{V^*}\right)^2$, with $V_t = \frac{1}{N}\sum_e x_{\text{phys},e}$ | $\approx 0$ with projection | `w_weight` (10.0, formerly `lam_v`), `weight_penalty` (`abs` / `sq_rel`) |
+| **Grayness** | $\mathcal{F}_{\text{grayness}} = -\dfrac{1}{N}\sum_e 4\,x_{\text{phys},e}(1 - x_{\text{phys},e})$ | $[-1, 0]$ | `w_gray` (0.0; ablation 0.05 to 0.2) |
+| **Action smoothness** | $\mathcal{F}_{\text{smoothness}} = -\dfrac{1}{N}\sum_e a_{t,e}^2$ | $[-1, 0]$ | `w_smooth` (0.0; ablation 0.01) |
+| **Terminal** | $\mathcal{F}_{\text{terminal}} = -\dfrac{C_T}{C_0}$ if $t = T_{\max}$, else $0$ | $[-0.5, -0.2]$ at $t = T$ | `w_term` (0.0, formerly `beta`) |
+
+* **Normalization by $C_0$:** $C_0$ is the compliance of the uniform initial design. Absolute compliance ranges over orders of magnitude with mesh and load; dividing by $C_0$ keeps the stiffness and terminal factors comparable across load cases and avoids badly scaled PPO gradients. A positive $\mathcal{F}_{\text{stiffness}}$ means the structure got stiffer.
+* **Grayness:** $4x(1-x)$ is $0$ for solid ($x=1$) or void ($x=0$) elements and peaks at $1$ for $x = 0.5$, so it pushes toward manufacturable 0/1 layouts.
+* **Smoothness:** penalizes large updates and element thrashing between steps. In the residual policy (Stage 4) $a_t$ is the policy's **raw residual output**, not the blended update $a_{\text{base}} + \alpha a_t$, so the sensitivity base direction is not penalized.
+* **Terminal:** gives credit for the quality of the finished design at the horizon, helping long-term credit assignment. It is added before clipping.
+* **Safety bound:** a disconnected structure makes $\mathbf{K}$ near-singular and compliance explode. The total is clipped to $[-R_{\max}, R_{\max}]$, and a non-finite compliance returns $-R_{\max}$. Normal design updates are never clipped (clip events are counted in `info["total_clip_events"]`).
+* **No artificial $\times 100$ multiplier:** the stiffness factor directly measures fractional stiffness gain.
+
+**Interaction with the exact volume projection.** Because the bisection projection (Section C.2) enforces $|V_t - V^*| < 10^{-6}$ at every step, $\mathcal{F}_{\text{weight}} \approx 0$ and $w_{\text{weight}}$ is effectively redundant in the projected setting. It is kept so that the same reward is valid when `project_volume: false` (pure soft-penalty approach), which is a planned ablation.
+
+**Audited configuration (Stage 3 and 4 results).** The defaults $w_{\text{stiff}} = 1$, $w_{\text{weight}} = 10$, $w_{\text{gray}} = w_{\text{smooth}} = w_{\text{term}} = 0$, $R_{\max} = 2$ reproduce exactly the reward used for all reported results (residual PPO $C = 441.9 \pm 1.0$):
+$$r_t = \frac{C_{t-1} - C_t}{C_0} - 10 \left\lvert V_t - V^* \right\rvert$$
+
+**Recommended ablation weights** (to be evaluated, not yet trained): $w_{\text{gray}} = 0.05$, $w_{\text{smooth}} = 0.01$, $w_{\text{term}} = 1.0$. With these, the grayness contribution is about $-0.01$ to $-0.04$ per step and churn about $-0.001$ to $-0.01$, small relative to the stiffness signal of $+0.02$ to $+0.08$.
+
+Each factor and its weighted contribution are returned per step in `info["reward_terms"]` for logging and ablation analysis.
+
+**Implementation** (`src/env/topopt_env.py`, `TopOptEnv.reward_terms`):
+```python
+F_stiff  = -(c - C_prev) / C0
+F_weight = -abs(V - volfrac)                     # or -((V - volfrac) / volfrac)**2
+F_gray   = -mean(4 * x_phys * (1 - x_phys))
+F_smooth = -mean(policy_action ** 2)             # raw policy action
+F_term   = -(c / C0) if t == max_steps else 0.0
+R = w_stiff*F_stiff + w_weight*F_weight + w_gray*F_gray + w_smooth*F_smooth + w_term*F_term
+r = clip(R, -reward_clip, reward_clip)
+```
 
 ---
 

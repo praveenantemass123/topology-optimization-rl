@@ -7,7 +7,8 @@ Conforms strictly to SPEC.md Section 0 & Section 7:
 - Emin = 1e-9 (uniform with FEM and SIMP)
 - Action space: Box(-1.0, 1.0, shape=(nely, nelx)), scaled by delta_max = 0.05
 - Volume projection: Exact bisection shift ensuring mean(x) == volfrac to < 1e-6
-- Reward: Normalized strictly by C0, clipped to [-10, 10], with finite check
+- Reward: weighted multi-factor sum (stiffness, weight, grayness, smoothness,
+  terminal), normalized by C0, clipped to [-reward_clip, reward_clip], finite check
 - Termination: Fixed-horizon truncation ONLY (no early stopping loopholes)
 """
 
@@ -49,8 +50,16 @@ class TopOptEnv(gym.Env):
             "delta_max": 0.05,
             "max_steps": 30,
             "project_volume": True,
-            "lam_v": 10.0,
-            "beta": 0.0,
+            # Weighted multi-factor reward (defaults reproduce the audited Stage 3/4 reward)
+            "w_stiff": 1.0,     # stiffness / compliance-drop factor
+            "w_weight": None,   # volume factor; None -> falls back to legacy lam_v
+            "w_gray": 0.0,      # grayness factor 4x(1-x)
+            "w_smooth": 0.0,    # action-churn factor mean(a^2)
+            "w_term": None,     # terminal factor; None -> falls back to legacy beta
+            "weight_penalty": "abs",  # "abs": |V-V*|, "sq_rel": ((V-V*)/V*)^2
+            "reward_clip": 2.0,
+            "lam_v": 10.0,      # legacy alias of w_weight
+            "beta": 0.0,        # legacy alias of w_term
             "p": 3.0,
             "E0": 1.0,
             "Emin": 1e-9,
@@ -69,6 +78,18 @@ class TopOptEnv(gym.Env):
         self.delta_max = float(self.config["delta_max"])
         self.max_steps = int(self.config["max_steps"])
         self.num_channels = int(self.config["channels"])
+
+        # Resolve reward weights (new names take precedence over legacy lam_v / beta)
+        w_weight = self.config.get("w_weight")
+        w_term = self.config.get("w_term")
+        self.w_stiff = float(self.config.get("w_stiff", 1.0))
+        self.w_weight = float(self.config.get("lam_v", 10.0) if w_weight is None else w_weight)
+        self.w_gray = float(self.config.get("w_gray", 0.0))
+        self.w_smooth = float(self.config.get("w_smooth", 0.0))
+        self.w_term = float(self.config.get("beta", 0.0) if w_term is None else w_term)
+        self.weight_penalty = str(self.config.get("weight_penalty", "abs"))
+        if self.weight_penalty not in ("abs", "sq_rel"):
+            raise ValueError(f"weight_penalty must be 'abs' or 'sq_rel', got {self.weight_penalty!r}")
         
         self.case_sampler = case_sampler
         self.rng = np.random.default_rng(seed)
@@ -184,6 +205,55 @@ class TopOptEnv(gym.Env):
         s_opt = 0.5 * (l1 + l2)
         return np.clip(x_in + s_opt, xmin, 1.0)
 
+    def reward_terms(
+        self,
+        c: float,
+        volume: float,
+        policy_action: np.ndarray,
+        is_last: bool,
+    ) -> Optional[Dict[str, float]]:
+        """
+        Weighted multi-factor reward (see docs/mdp_specification.md, Section 2.D):
+
+            R_t = w_stiff  * F_stiffness   ( (C_{t-1} - C_t) / C0 )
+                + w_weight * F_weight      ( -|V_t - V*|  or  -((V_t - V*)/V*)^2 )
+                + w_gray   * F_grayness    ( -mean(4 x_phys (1 - x_phys)) )
+                + w_smooth * F_smoothness  ( -mean(a_t^2), raw policy action )
+                + w_term   * F_terminal    ( -C_T / C0 at t = T_max, else 0 )
+
+        Returns the individual factors, their weighted contributions and the
+        unclipped total, or None if compliance is non-finite.
+        """
+        if not (np.isfinite(c) and np.isfinite(self.C_prev) and self.C0 > 0):
+            return None
+
+        F_stiff = -(c - self.C_prev) / self.C0
+        if self.weight_penalty == "sq_rel":
+            F_weight = -((volume - self.volfrac) / self.volfrac) ** 2
+        else:
+            F_weight = -abs(volume - self.volfrac)
+        F_gray = -float(np.mean(4.0 * self.x_phys * (1.0 - self.x_phys)))
+        F_smooth = -float(np.mean(np.asarray(policy_action, dtype=np.float64) ** 2))
+        F_term = -(c / self.C0) if is_last else 0.0
+
+        terms = {
+            "F_stiffness": float(F_stiff),
+            "F_weight": float(F_weight),
+            "F_grayness": float(F_gray),
+            "F_smoothness": float(F_smooth),
+            "F_terminal": float(F_term),
+        }
+        weighted = {
+            "r_stiffness": self.w_stiff * terms["F_stiffness"],
+            "r_weight": self.w_weight * terms["F_weight"],
+            "r_grayness": self.w_gray * terms["F_grayness"],
+            "r_smoothness": self.w_smooth * terms["F_smoothness"],
+            "r_terminal": self.w_term * terms["F_terminal"],
+        }
+        terms.update(weighted)
+        terms["total"] = float(sum(weighted.values()))
+        return terms
+
     def reset(
         self,
         seed: Optional[int] = None,
@@ -254,6 +324,7 @@ class TopOptEnv(gym.Env):
         
         # 1. Bounded action scaled by delta_max
         action_arr = np.clip(np.array(action, dtype=np.float64), -1.0, 1.0)
+        policy_action = action_arr.copy()  # raw policy output, used by the smoothness term
         
         # Physics Residual Policy blend (Stage 4)
         if self.config.get("residual", False):
@@ -300,32 +371,30 @@ class TopOptEnv(gym.Env):
         self.U = U
         self.ce = ce
         
-        # 5. C0-Normalized Reward with Safeguards
-        actual_vol = float(np.mean(self.x_phys))
-        vol_error = abs(actual_vol - self.volfrac)
-        reward_clip = float(self.config.get("reward_clip", 2.0))
-        
-        if np.isfinite(c) and np.isfinite(self.C_prev) and self.C0 > 0:
-            delta_c_norm = -(c - self.C_prev) / self.C0
-            r_unclipped = float(delta_c_norm - self.config["lam_v"] * vol_error)
-            clipped = bool(abs(r_unclipped) >= reward_clip)
-            if clipped:
-                self.clip_count += 1
-            r = float(np.clip(r_unclipped, -reward_clip, reward_clip))
-        else:
-            r = -reward_clip
-            clipped = True
-            self.clip_count += 1
-            
-        self.C_prev = float(c)
-        
-        # 6. Fixed-Horizon Truncation ONLY (No early-stopping loopholes)
+        # 5. Fixed-Horizon Truncation ONLY (No early-stopping loopholes)
         terminated = False
         truncated = bool(self.t >= self.max_steps)
-        
-        if (terminated or truncated) and self.config.get("beta", 0.0) > 0.0:
-            r += -self.config["beta"] * (c / self.C0)
-            
+
+        # 6. Weighted multi-factor reward (C0-normalized, clipped, finite-checked)
+        actual_vol = float(np.mean(self.x_phys))
+        terms = self.reward_terms(c, actual_vol, policy_action, is_last=(terminated or truncated))
+        reward_clip = float(self.config.get("reward_clip", 2.0))
+
+        if terms is not None:
+            r_unclipped = terms["total"]
+            clipped = bool(abs(r_unclipped) >= reward_clip)
+            r = float(np.clip(r_unclipped, -reward_clip, reward_clip))
+            delta_c_norm = terms["F_stiffness"]
+        else:
+            # Non-finite compliance (disconnected structure / singular K)
+            r = -reward_clip
+            clipped = True
+            delta_c_norm = 0.0
+        if clipped:
+            self.clip_count += 1
+
+        self.C_prev = float(c)
+
         sed = strain_energy_density(
             self.U, self.x_phys, self.fea_cache["KE"], self.fea_cache["edofMat"],
             p=self.config["p"], E0=self.config["E0"], Emin=self.config["Emin"]
@@ -339,8 +408,9 @@ class TopOptEnv(gym.Env):
             "volume": actual_vol,
             "grayness": grayness,
             "n_fea": self.t,
-            "delta_compliance": float(delta_c_norm) if np.isfinite(c) else 0.0,
+            "delta_compliance": float(delta_c_norm),
             "reward_clipped": clipped,
-            "total_clip_events": self.clip_count
+            "total_clip_events": self.clip_count,
+            "reward_terms": terms if terms is not None else {},
         }
         return obs, r, terminated, truncated, info
